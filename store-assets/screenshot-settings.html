@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Screenshot - Settings Tab</title>
+<style>
+  body { margin: 0; padding: 40px; background: #1a1a2e; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; }
+  .frame {
+    width: 560px; background: #0f172a; border-radius: 12px; overflow: hidden;
+    box-shadow: 0 25px 60px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.08);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #f1f5f9; font-size: 13px; line-height: 1.5;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green: #4ade80; --green-d: #16a34a;
+    --blue: #60a5fa; --blue-d: #2563eb;
+    --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+    --text: #f1f5f9; --muted: #94a3b8; --border: #334155; --radius: 8px;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--bg2);
+  }
+  .logo-lockup { display: flex; align-items: center; gap: 6px; }
+  .logo-pill {
+    display: flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 8px;
+    font-size: 13px; font-weight: 700; color: #fff;
+  }
+  .logo-monarch { background: linear-gradient(135deg, #7c3aed, #a855f7); box-shadow: 0 0 10px rgba(124,58,237,.4); }
+  .logo-pl { background: linear-gradient(135deg, #0284c7, #38bdf8); box-shadow: 0 0 10px rgba(14,165,233,.4); }
+  .logo-arrow svg { width: 18px; height: 18px; stroke: var(--muted); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .header-text { flex: 1; }
+  .header-text h1 { font-size: 13px; font-weight: 600; line-height: 1.2; }
+  .header-text p { font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .gear-btn { background: none; border: none; color: var(--muted); font-size: 16px; padding: 4px; }
+  .tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--bg2); }
+  .tab { flex: 1; padding: 8px; text-align: center; font-size: 12px; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; }
+  .tab.active { color: var(--blue); border-color: var(--blue); }
+  .panel { padding: 14px 16px; }
+  .settings-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 10px; }
+  .settings-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .settings-card-logo {
+    width: 24px; height: 24px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .settings-card-logo.monarch { background: linear-gradient(135deg, #7c3aed, #a855f7); }
+  .settings-card-logo.pl { background: linear-gradient(135deg, #0284c7, #38bdf8); }
+  .settings-card-title { font-size: 12px; font-weight: 600; flex: 1; }
+  .settings-card-status { font-size: 11px; }
+  .status-saved { color: var(--green); }
+  .text-muted { color: var(--muted); font-size: 11px; }
+  a { color: #a78bfa; }
+  .alert-success { font-size: 11px; padding: 5px 9px; border-radius: 5px; margin-top: 8px; background: #14532d; color: var(--green); }
+  .settings-card-footer { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 4px 10px; border-radius: var(--radius); font-size: 12px; font-weight: 500; border: none; }
+  .btn-ghost { background: var(--bg3); color: var(--text); }
+  .btn-primary { background: var(--blue-d); color: #fff; }
+  .spacer { flex: 1; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+  .support-section { text-align: center; padding: 12px 0 4px; }
+  .support-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 16px; border-radius: var(--radius);
+    background: linear-gradient(135deg, #008CFF, #00D4AA);
+    color: #fff; font-size: 12px; font-weight: 600;
+    text-decoration: none;
+  }
+  .support-btn svg { width: 16px; height: 16px; fill: currentColor; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <header>
+    <div class="logo-lockup">
+      <div class="logo-pill logo-monarch">M</div>
+      <div class="logo-arrow"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg></div>
+      <div class="logo-pill logo-pl">PL</div>
+    </div>
+    <div class="header-text">
+      <h1>Monarch &rarr; ProjectionLab</h1>
+      <p>Account balance sync</p>
+    </div>
+    <span class="gear-btn">&#9881;&#65039;</span>
+  </header>
+  <div class="tabs">
+    <div class="tab">Sync</div>
+    <div class="tab">Account Mapping</div>
+    <div class="tab active">Settings</div>
+  </div>
+  <div class="panel">
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <div class="settings-card-logo monarch">M</div>
+        <div class="settings-card-title">Monarch Money</div>
+        <div class="settings-card-status status-saved">&#10003; connected</div>
+      </div>
+      <p class="text-muted" style="font-size:11px;margin-bottom:8px">
+        Just log into <a href="#">app.monarch.com</a> in this browser &mdash; the extension uses your active session automatically.
+      </p>
+      <div class="alert-success">&#10003; Connected to Monarch (12 accounts found)</div>
+      <div class="settings-card-footer">
+        <div class="btn btn-ghost">&#128268; Test Connection</div>
+        <div class="spacer"></div>
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <div class="settings-card-header">
+        <div class="settings-card-logo pl">PL</div>
+        <div class="settings-card-title">ProjectionLab</div>
+        <div class="settings-card-status status-saved">&#10003; saved</div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Plugin API Key</div>
+      <div style="width:100%;padding:7px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--muted);font-size:13px;">&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;</div>
+      <div class="alert-success" style="margin-top:8px">&#10003; Connected to ProjectionLab!</div>
+      <div class="settings-card-footer">
+        <div class="btn btn-ghost">&#128268; Test</div>
+        <div class="spacer"></div>
+        <div class="btn btn-primary">&#128190; Save</div>
+      </div>
+    </div>
+
+    <hr />
+    <div class="support-section">
+      <a class="support-btn" href="#">
+        <svg viewBox="0 0 24 24"><path d="M2 21l1.5-1.5L12 6l8.5 13.5L22 21H2zm10-13.5c0 .83-.67 1.5-1.5 1.5S9 8.33 9 7.5 9.67 6 10.5 6s1.5.67 1.5 1.5z"/></svg>
+        &#9749; Buy me a coffee
+      </a>
+      <p class="text-muted" style="margin-top:6px;font-size:10px">If you find this extension useful, consider supporting development!</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

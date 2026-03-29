@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Store Screenshot Capture</title>
+<style>
+  body { margin: 0; padding: 20px; background: #111; color: #fff; font-family: sans-serif; }
+  canvas { display: block; margin: 20px auto; border: 1px solid #333; }
+  .instructions { text-align: center; margin: 20px; font-size: 14px; color: #aaa; }
+  a { color: #60a5fa; }
+</style>
+</head>
+<body>
+<div class="instructions">
+  <p>Right-click each image below and "Save Image As..." to download the store screenshots.</p>
+  <p>Chrome Web Store requires: 1280x800 or 640x400</p>
+</div>
+
+<h3 style="text-align:center; margin-top:30px">Screenshot 1: Sync Tab (640x400)</h3>
+<canvas id="c1" width="1280" height="800"></canvas>
+
+<h3 style="text-align:center; margin-top:30px">Screenshot 2: Settings Tab (640x400)</h3>
+<canvas id="c2" width="1280" height="800"></canvas>
+
+<script>
+function drawPopup(ctx, W, H, contentFn) {
+  // Background
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, W, H);
+
+  // Centered popup frame
+  const pw = 560, ph_max = 500;
+  const px = (W - pw) / 2;
+  const py = (H - ph_max) / 2 + 20;
+
+  // Shadow
+  ctx.shadowColor = 'rgba(0,0,0,0.5)';
+  ctx.shadowBlur = 40;
+  ctx.shadowOffsetY = 15;
+
+  // Frame background
+  ctx.fillStyle = '#0f172a';
+  roundRect(ctx, px, py, pw, ph_max, 12);
+  ctx.fill();
+
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+
+  // Border
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  roundRect(ctx, px, py, pw, ph_max, 12);
+  ctx.stroke();
+
+  contentFn(ctx, px, py, pw);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function drawPill(ctx, x, y, w, h, r, grad1, grad2) {
+  const g = ctx.createLinearGradient(x, y, x+w, y+h);
+  g.addColorStop(0, grad1);
+  g.addColorStop(1, grad2);
+  ctx.fillStyle = g;
+  roundRect(ctx, x, y, w, h, r);
+  ctx.fill();
+}
+
+function drawHeader(ctx, px, py, pw) {
+  // Header bg
+  ctx.fillStyle = '#1e293b';
+  ctx.fillRect(px, py, pw, 54);
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(px, py + 54, pw, 1);
+
+  // M pill
+  drawPill(ctx, px + 12, py + 12, 30, 30, 8, '#7c3aed', '#a855f7');
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 13px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('M', px + 27, py + 31);
+
+  // Arrow
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px + 48, py + 27);
+  ctx.lineTo(px + 58, py + 27);
+  ctx.moveTo(px + 55, py + 23);
+  ctx.lineTo(px + 58, py + 27);
+  ctx.lineTo(px + 55, py + 31);
+  ctx.stroke();
+
+  // PL pill
+  drawPill(ctx, px + 64, py + 12, 30, 30, 8, '#0284c7', '#38bdf8');
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 11px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('PL', px + 79, py + 31);
+
+  // Title
+  ctx.fillStyle = '#f1f5f9';
+  ctx.font = '600 13px -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Monarch \u2192 ProjectionLab', px + 104, py + 25);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '10px -apple-system, sans-serif';
+  ctx.fillText('Account balance sync', px + 104, py + 39);
+
+  return py + 55;
+}
+
+function drawTabs(ctx, px, y, pw, activeIdx) {
+  ctx.fillStyle = '#1e293b';
+  ctx.fillRect(px, y, pw, 36);
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(px, y + 36, pw, 1);
+
+  const tabs = ['Sync', 'Account Mapping', 'Settings'];
+  const tw = pw / 3;
+  tabs.forEach((t, i) => {
+    ctx.fillStyle = i === activeIdx ? '#60a5fa' : '#94a3b8';
+    ctx.font = '500 12px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(t, px + tw * i + tw / 2, y + 22);
+    if (i === activeIdx) {
+      ctx.fillStyle = '#60a5fa';
+      ctx.fillRect(px + tw * i + 10, y + 34, tw - 20, 2);
+    }
+  });
+
+  return y + 37;
+}
+
+// ─── SYNC SCREENSHOT ───
+const c1 = document.getElementById('c1');
+const ctx1 = c1.getContext('2d');
+drawPopup(ctx1, 1280, 800, (ctx, px, py, pw) => {
+  let y = drawHeader(ctx, px, py, pw);
+  y = drawTabs(ctx, px, y, pw, 0);
+
+  // Success banner
+  y += 14;
+  ctx.fillStyle = '#14532d';
+  roundRect(ctx, px + 16, y, pw - 32, 30, 8);
+  ctx.fill();
+  ctx.fillStyle = '#4ade80';
+  ctx.font = '12px -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('\u2713 Synced 4 account(s) successfully!', px + 28, y + 19);
+
+  // Section title
+  y += 44;
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '600 11px -apple-system, sans-serif';
+  ctx.fillText('READY TO SYNC', px + 16, y);
+
+  // Table header
+  y += 16;
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '500 11px -apple-system, sans-serif';
+  ctx.fillText('\u2611  Account', px + 16, y);
+  ctx.fillText('Current (PL)', px + 280, y);
+  ctx.fillText('New (Monarch)', px + 400, y);
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(px + 16, y + 6, pw - 32, 1);
+
+  // Table rows
+  const rows = [
+    { cb: true, name: 'Primary Checking', old: '$12,450', new_: '$13,892', diff: '+$1,442', pos: true },
+    { cb: true, name: 'High Yield Savings', old: '$45,200', new_: '$46,100', diff: '+$900', pos: true },
+    { cb: true, name: 'Roth IRA', old: '$78,340', new_: '$81,205', diff: '+$2,865', pos: true },
+    { cb: true, name: 'Brokerage Account', old: '$125,600', new_: '$122,890', diff: '-$2,710', pos: false },
+    { cb: false, name: 'Credit Card', old: '-$2,340', new_: '-$2,340', diff: '', pos: true },
+  ];
+
+  y += 14;
+  rows.forEach((r, i) => {
+    y += 26;
+    const alpha = r.cb ? 1.0 : 0.4;
+
+    // Checkbox
+    ctx.fillStyle = r.cb ? '#16a34a' : '#334155';
+    roundRect(ctx, px + 16, y - 7, 14, 14, 3);
+    ctx.fill();
+    if (r.cb) {
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('\u2713', px + 23, y + 4);
+    }
+
+    ctx.globalAlpha = alpha;
+    // Name
+    ctx.fillStyle = '#f1f5f9';
+    ctx.font = '500 12px -apple-system, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(r.name, px + 38, y + 4);
+
+    // Old balance
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '12px -apple-system, sans-serif';
+    if (r.cb) {
+      // strikethrough
+      const tw = ctx.measureText(r.old).width;
+      ctx.fillText(r.old, px + 280, y + 4);
+      ctx.fillRect(px + 280, y, tw, 1);
+    } else {
+      ctx.fillText(r.old, px + 280, y + 4);
+    }
+
+    // New balance
+    if (r.diff) {
+      ctx.fillStyle = '#4ade80';
+      ctx.font = '500 12px -apple-system, sans-serif';
+      ctx.fillText(r.new_, px + 400, y + 4);
+      ctx.fillStyle = r.pos ? '#4ade80' : '#f87171';
+      ctx.font = '12px -apple-system, sans-serif';
+      ctx.fillText(r.diff, px + 470, y + 4);
+    } else {
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText(r.new_, px + 400, y + 4);
+    }
+    ctx.globalAlpha = 1.0;
+
+    // Row divider
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(px + 16, y + 12, pw - 32, 1);
+  });
+
+  // Divider
+  y += 26;
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(px + 16, y, pw - 32, 1);
+
+  // Bottom bar
+  y += 16;
+  // Load Preview button
+  ctx.fillStyle = '#334155';
+  roundRect(ctx, px + 16, y, 120, 34, 8);
+  ctx.fill();
+  ctx.fillStyle = '#f1f5f9';
+  ctx.font = '500 13px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('\ud83d\udc41 Load Preview', px + 76, y + 21);
+
+  // Hide unchanged checkbox
+  ctx.fillStyle = '#16a34a';
+  roundRect(ctx, px + 148, y + 10, 14, 14, 3);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 10px sans-serif';
+  ctx.fillText('\u2713', px + 155, y + 21);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Hide unchanged', px + 168, y + 21);
+
+  // Sync button
+  const syncG = ctx.createLinearGradient(px + pw - 186, y, px + pw - 16, y);
+  syncG.addColorStop(0, '#16a34a');
+  syncG.addColorStop(1, '#16a34a');
+  ctx.fillStyle = '#16a34a';
+  roundRect(ctx, px + pw - 186, y, 170, 34, 8);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = '500 13px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('\u26a1 Sync Selected (4)', px + pw - 101, y + 21);
+
+  // Last synced
+  y += 44;
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Last synced: 3/14/2026, 3:42:15 PM', px + 16, y);
+});
+
+// Convert canvas 1 to downloadable image
+c1.toBlob(blob => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url; link.download = 'screenshot-sync-1280x800.png';
+  document.body.appendChild(link);
+  // auto-save
+}, 'image/png');
+
+// ─── SETTINGS SCREENSHOT ───
+const c2 = document.getElementById('c2');
+const ctx2 = c2.getContext('2d');
+drawPopup(ctx2, 1280, 800, (ctx, px, py, pw) => {
+  let y = drawHeader(ctx, px, py, pw);
+  y = drawTabs(ctx, px, y, pw, 2);
+  y += 14;
+
+  // Monarch card
+  ctx.fillStyle = '#1e293b';
+  ctx.strokeStyle = '#334155';
+  ctx.lineWidth = 1;
+  roundRect(ctx, px + 16, y, pw - 32, 140, 8);
+  ctx.fill();
+  roundRect(ctx, px + 16, y, pw - 32, 140, 8);
+  ctx.stroke();
+
+  // M logo
+  drawPill(ctx, px + 28, y + 12, 24, 24, 6, '#7c3aed', '#a855f7');
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 12px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('M', px + 40, y + 28);
+
+  ctx.fillStyle = '#f1f5f9';
+  ctx.font = '600 12px -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Monarch Money', px + 60, y + 28);
+  ctx.fillStyle = '#4ade80';
+  ctx.font = '11px -apple-system, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('\u2713 connected', px + pw - 28, y + 28);
+
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px -apple-system, sans-serif';
+  ctx.fillText('Just log into app.monarch.com in this browser \u2014 the extension', px + 28, y + 52);
+  ctx.fillText('uses your active session automatically.', px + 28, y + 66);
+
+  // Success alert
+  ctx.fillStyle = '#14532d';
+  roundRect(ctx, px + 28, y + 78, pw - 56, 24, 5);
+  ctx.fill();
+  ctx.fillStyle = '#4ade80';
+  ctx.font = '11px -apple-system, sans-serif';
+  ctx.fillText('\u2713 Connected to Monarch (12 accounts found)', px + 38, y + 94);
+
+  // Test button
+  ctx.fillStyle = '#334155';
+  roundRect(ctx, px + 28, y + 112, 130, 24, 8);
+  ctx.fill();
+  ctx.fillStyle = '#f1f5f9';
+  ctx.font = '500 12px -apple-system, sans-serif';
+  ctx.fillText('\ud83d\udd0c Test Connection', px + 38, y + 128);
+
+  // PL card
+  y += 158;
+  ctx.fillStyle = '#1e293b';
+  ctx.strokeStyle = '#334155';
+  roundRect(ctx, px + 16, y, pw - 32, 160, 8);
+  ctx.fill();
+  roundRect(ctx, px + 16, y, pw - 32, 160, 8);
+  ctx.stroke();
+
+  // PL logo
+  drawPill(ctx, px + 28, y + 12, 24, 24, 6, '#0284c7', '#38bdf8');
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 10px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('PL', px + 40, y + 28);
+
+  ctx.fillStyle = '#f1f5f9';
+  ctx.font = '600 12px -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('ProjectionLab', px + 60, y + 28);
+  ctx.fillStyle = '#4ade80';
+  ctx.font = '11px -apple-system, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('\u2713 saved', px + pw - 28, y + 28);
+
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px -apple-system, sans-serif';
+  ctx.fillText('Plugin API Key', px + 28, y + 52);
+
+  // Input field
+  ctx.fillStyle = '#0f172a';
+  ctx.strokeStyle = '#334155';
+  roundRect(ctx, px + 28, y + 58, pw - 56, 32, 8);
+  ctx.fill();
+  roundRect(ctx, px + 28, y + 58, pw - 56, 32, 8);
+  ctx.stroke();
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '13px -apple-system, sans-serif';
+  ctx.fillText('\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022', px + 38, y + 79);
+
+  // Success alert
+  ctx.fillStyle = '#14532d';
+  roundRect(ctx, px + 28, y + 98, pw - 56, 24, 5);
+  ctx.fill();
+  ctx.fillStyle = '#4ade80';
+  ctx.font = '11px -apple-system, sans-serif';
+  ctx.fillText('\u2713 Connected to ProjectionLab!', px + 38, y + 114);
+
+  // Buttons
+  ctx.fillStyle = '#334155';
+  roundRect(ctx, px + 28, y + 130, 60, 24, 8);
+  ctx.fill();
+  ctx.fillStyle = '#f1f5f9';
+  ctx.font = '500 12px -apple-system, sans-serif';
+  ctx.fillText('\ud83d\udd0c Test', px + 38, y + 146);
+
+  ctx.fillStyle = '#2563eb';
+  roundRect(ctx, px + pw - 88, y + 130, 60, 24, 8);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.fillText('\ud83d\udcbe Save', px + pw - 78, y + 146);
+
+  // Divider
+  y += 174;
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(px + 16, y, pw - 32, 1);
+
+  // Buy me a coffee
+  y += 16;
+  const coffeeG = ctx.createLinearGradient(px + pw/2 - 90, y, px + pw/2 + 90, y + 34);
+  coffeeG.addColorStop(0, '#008CFF');
+  coffeeG.addColorStop(1, '#00D4AA');
+  ctx.fillStyle = coffeeG;
+  roundRect(ctx, px + pw/2 - 90, y, 180, 34, 8);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = '600 12px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('\u2615 Buy me a coffee', px + pw/2, y + 21);
+
+  y += 44;
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '10px -apple-system, sans-serif';
+  ctx.fillText('If you find this extension useful, consider supporting development!', px + pw/2, y);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Screenshot - Sync Tab</title>
+<style>
+  body { margin: 0; padding: 40px; background: #1a1a2e; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; }
+  .frame {
+    width: 560px; background: #0f172a; border-radius: 12px; overflow: hidden;
+    box-shadow: 0 25px 60px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.08);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #f1f5f9; font-size: 13px; line-height: 1.5;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green: #4ade80; --green-d: #16a34a;
+    --blue: #60a5fa; --blue-d: #2563eb;
+    --red: #f87171; --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+    --text: #f1f5f9; --muted: #94a3b8; --border: #334155; --radius: 8px;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--bg2);
+  }
+  .logo-lockup { display: flex; align-items: center; gap: 6px; }
+  .logo-pill {
+    display: flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 8px;
+    font-size: 13px; font-weight: 700; color: #fff;
+  }
+  .logo-monarch { background: linear-gradient(135deg, #7c3aed, #a855f7); box-shadow: 0 0 10px rgba(124,58,237,.4); }
+  .logo-pl { background: linear-gradient(135deg, #0284c7, #38bdf8); box-shadow: 0 0 10px rgba(14,165,233,.4); }
+  .logo-arrow svg { width: 18px; height: 18px; stroke: var(--muted); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .header-text { flex: 1; }
+  .header-text h1 { font-size: 13px; font-weight: 600; line-height: 1.2; }
+  .header-text p { font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .gear-btn { background: none; border: none; color: var(--muted); font-size: 16px; padding: 4px; }
+  .tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--bg2); }
+  .tab { flex: 1; padding: 8px; text-align: center; font-size: 12px; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; }
+  .tab.active { color: var(--blue); border-color: var(--blue); }
+  .panel { padding: 14px 16px; }
+  .section-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 8px; }
+  .status-bar { padding: 8px 12px; border-radius: var(--radius); font-size: 12px; margin-bottom: 12px; background: #14532d; color: var(--green); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px; padding: 4px 6px; border-bottom: 1px solid var(--border); }
+  td { padding: 6px 6px; border-bottom: 1px solid #1e293b; }
+  tr:last-child td { border-bottom: none; }
+  .cb-cell { text-align: center; width: 28px; padding: 4px 4px !important; }
+  .sync-cb { width: 14px; height: 14px; accent-color: var(--green); }
+  .balance-old { color: var(--muted); text-decoration: line-through; }
+  .balance-new { color: var(--green); font-weight: 500; }
+  .diff-pos { color: #4ade80; }
+  .diff-neg { color: #f87171; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+  .row { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border-radius: var(--radius); font-size: 13px; font-weight: 500; border: none; }
+  .btn-ghost { background: var(--bg3); color: var(--text); }
+  .btn-success { background: var(--green-d); color: #fff; }
+  .spacer { flex: 1; }
+  .text-muted { color: var(--muted); font-size: 11px; }
+  .hide-label { display: flex; align-items: center; gap: 4px; margin: 0; font-size: 11px; color: var(--muted); }
+  .last-sync { color: var(--muted); font-size: 11px; margin-top: 8px; }
+  .row-disabled td:not(.cb-cell) { opacity: .4; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <header>
+    <div class="logo-lockup">
+      <div class="logo-pill logo-monarch">M</div>
+      <div class="logo-arrow"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg></div>
+      <div class="logo-pill logo-pl">PL</div>
+    </div>
+    <div class="header-text">
+      <h1>Monarch &rarr; ProjectionLab</h1>
+      <p>Account balance sync</p>
+    </div>
+    <span class="gear-btn">&#9881;&#65039;</span>
+  </header>
+  <div class="tabs">
+    <div class="tab active">Sync</div>
+    <div class="tab">Account Mapping</div>
+    <div class="tab">Settings</div>
+  </div>
+  <div class="panel">
+    <div class="status-bar">&#10003; Synced 4 account(s) successfully!</div>
+    <div class="section-title">Ready to sync</div>
+    <table>
+      <thead><tr>
+        <th class="cb-cell"><input type="checkbox" class="sync-cb" checked /></th>
+        <th>Account</th>
+        <th>Current (PL)</th>
+        <th>New (Monarch)</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td class="cb-cell"><input type="checkbox" class="sync-cb" checked /></td>
+          <td>Primary Checking</td>
+          <td class="balance-old">$12,450</td>
+          <td class="balance-new">$13,892 <span class="diff-pos">+$1,442</span></td>
+        </tr>
+        <tr>
+          <td class="cb-cell"><input type="checkbox" class="sync-cb" checked /></td>
+          <td>High Yield Savings</td>
+          <td class="balance-old">$45,200</td>
+          <td class="balance-new">$46,100 <span class="diff-pos">+$900</span></td>
+        </tr>
+        <tr>
+          <td class="cb-cell"><input type="checkbox" class="sync-cb" checked /></td>
+          <td>Roth IRA</td>
+          <td class="balance-old">$78,340</td>
+          <td class="balance-new">$81,205 <span class="diff-pos">+$2,865</span></td>
+        </tr>
+        <tr>
+          <td class="cb-cell"><input type="checkbox" class="sync-cb" checked /></td>
+          <td>Brokerage Account</td>
+          <td class="balance-old">$125,600</td>
+          <td class="balance-new">$122,890 <span class="diff-neg">-$2,710</span></td>
+        </tr>
+        <tr class="row-disabled">
+          <td class="cb-cell"><input type="checkbox" class="sync-cb" /></td>
+          <td>Credit Card</td>
+          <td style="color:var(--muted)">-$2,340</td>
+          <td style="color:var(--muted)">-$2,340</td>
+        </tr>
+      </tbody>
+    </table>
+    <hr />
+    <div class="row">
+      <div class="btn btn-ghost">&#128065; Load Preview</div>
+      <label class="hide-label"><input type="checkbox" class="sync-cb" checked /> Hide unchanged</label>
+      <div class="spacer"></div>
+      <div class="btn btn-success">&#9889; Sync Selected (4)</div>
+    </div>
+    <p class="last-sync">Last synced: 3/14/2026, 3:42:15 PM</p>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Monarch → ProjectionLab Sync</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:    #4ade80;
+      --green-d:  #16a34a;
+      --blue:     #60a5fa;
+      --blue-d:   #2563eb;
+      --red:      #f87171;
+      --red-d:    #dc2626;
+      --bg:       #0f172a;
+      --bg2:      #1e293b;
+      --bg3:      #334155;
+      --text:     #f1f5f9;
+      --muted:    #94a3b8;
+      --border:   #334155;
+      --radius:   8px;
+      --monarch:  #7c3aed;
+      --pl:       #0ea5e9;
+    }
+
+    body {
+      width: 560px;
+      min-height: 300px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+    }
+    .logo-lockup { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .logo-pill {
+      display: flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; border-radius: 8px;
+      font-size: 13px; font-weight: 700; color: #fff;
+    }
+    .logo-monarch { background: linear-gradient(135deg, #7c3aed, #a855f7); box-shadow: 0 0 10px rgba(124,58,237,.4); }
+    .logo-pl      { background: linear-gradient(135deg, #0284c7, #38bdf8); box-shadow: 0 0 10px rgba(14,165,233,.4); }
+    .logo-arrow svg { width: 18px; height: 18px; stroke: var(--muted); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .header-text { flex: 1; }
+    .header-text h1 { font-size: 13px; font-weight: 600; line-height: 1.2; }
+    .header-text p  { font-size: 10px; color: var(--muted); margin-top: 1px; }
+    .gear-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 4px; border-radius: 4px; transition: color .15s; }
+    .gear-btn:hover { color: var(--text); }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--bg2); }
+    .tab { flex: 1; padding: 8px; text-align: center; cursor: pointer; font-size: 12px; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; transition: color .15s, border-color .15s; }
+    .tab.active { color: var(--blue); border-color: var(--blue); }
+
+    /* ── Panels ── */
+    .panel { display: none; padding: 14px 16px; }
+    .panel.active { display: block; }
+
+    /* ── Form elements ── */
+    label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; margin-top: 12px; }
+    label:first-child { margin-top: 0; }
+    input, select { width: 100%; padding: 7px 10px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 13px; outline: none; transition: border-color .15s; }
+    input:focus, select:focus { border-color: var(--blue); }
+    input::placeholder { color: var(--muted); }
+
+    /* ── Buttons ── */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: opacity .15s, background .15s; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-primary { background: var(--blue-d); color: #fff; }
+    .btn-primary:not(:disabled):hover { background: var(--blue); }
+    .btn-success { background: var(--green-d); color: #fff; }
+    .btn-success:not(:disabled):hover { background: var(--green); color: #000; }
+    .btn-ghost { background: var(--bg3); color: var(--text); }
+    .btn-ghost:not(:disabled):hover { background: #475569; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+    .btn-full { width: 100%; }
+
+    /* ── Status banners ── */
+    .status-bar { display: none; padding: 8px 12px; border-radius: var(--radius); font-size: 12px; margin-bottom: 12px; }
+    .status-bar.info    { background: #1e3a5f; color: var(--blue);  display: block; }
+    .status-bar.success { background: #14532d; color: var(--green); display: block; }
+    .status-bar.error   { background: #450a0a; color: var(--red);   display: block; }
+    .status-bar.warning { background: #451a03; color: #fb923c;      display: block; }
+
+    /* ── Settings cards ── */
+    .settings-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 10px; }
+    .settings-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .settings-card-logo { width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .settings-card-logo.monarch { background: linear-gradient(135deg, #7c3aed, #a855f7); }
+    .settings-card-logo.pl      { background: linear-gradient(135deg, #0284c7, #38bdf8); }
+    .settings-card-title { font-size: 12px; font-weight: 600; flex: 1; }
+    .settings-card-status { font-size: 11px; }
+    .settings-card-status.saved   { color: var(--green); }
+    .settings-card-status.unsaved { color: var(--muted); }
+    .settings-card label { margin-top: 0; }
+    .settings-card-footer { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+    .settings-card-alert { display: none; font-size: 11px; padding: 5px 9px; border-radius: 5px; margin-top: 8px; }
+    .settings-card-alert.success { background: #14532d; color: var(--green); display: block; }
+    .settings-card-alert.error   { background: #450a0a; color: var(--red);   display: block; }
+
+    /* ── Support button ── */
+    .support-section {
+      text-align: center; padding: 12px 0 4px;
+    }
+    .support-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 16px; border-radius: var(--radius);
+      background: linear-gradient(135deg, #008CFF, #00D4AA);
+      color: #fff; font-size: 12px; font-weight: 600;
+      text-decoration: none; border: none; cursor: pointer;
+      transition: opacity .15s;
+    }
+    .support-btn:hover { opacity: .85; }
+    .support-btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+    /* ══════════════════════════════════════════════
+       ACCOUNT MAPPING — three-column visual builder
+       ══════════════════════════════════════════════ */
+    #tab-mapping { padding: 12px; }
+
+    .mapping-toolbar {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+    }
+    .mapping-toolbar .spacer { flex: 1; }
+
+    /* Three columns */
+    .mapping-columns {
+      display: grid;
+      grid-template-columns: 1fr 56px 1fr;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      min-height: 340px;
+    }
+
+    /* Account lists */
+    .acct-col {
+      display: flex; flex-direction: column;
+      background: var(--bg);
+    }
+    .acct-col-header {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 10px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .04em;
+      position: sticky; top: 0;
+    }
+    .acct-col-header .col-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .col-dot-monarch { background: #a855f7; }
+    .col-dot-pl      { background: #38bdf8; }
+    .acct-col-header .col-count { margin-left: auto; font-size: 10px; color: var(--muted); font-weight: 400; }
+
+    .acct-list {
+      flex: 1; overflow-y: auto; padding: 4px;
+      max-height: 300px;
+    }
+    .acct-list::-webkit-scrollbar { width: 4px; }
+    .acct-list::-webkit-scrollbar-track { background: transparent; }
+    .acct-list::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 2px; }
+
+    .acct-item {
+      padding: 7px 9px; border-radius: 6px; cursor: pointer;
+      margin-bottom: 3px; border: 1px solid transparent;
+      transition: background .12s, border-color .12s;
+      user-select: none;
+    }
+    .acct-item:hover   { background: var(--bg2); }
+    .acct-item.mapped  { opacity: .38; cursor: default; }
+    .acct-item.selected-monarch {
+      background: rgba(124,58,237,.18);
+      border-color: #7c3aed;
+    }
+    .acct-item.selected-pl {
+      background: rgba(14,165,233,.18);
+      border-color: #0ea5e9;
+    }
+    .acct-item-name  { font-size: 12px; font-weight: 500; line-height: 1.3; }
+    .acct-item-sub   { font-size: 10px; color: var(--muted); margin-top: 1px; }
+    .acct-item-badge {
+      display: inline-block; font-size: 9px; padding: 1px 5px;
+      border-radius: 10px; margin-left: 4px; vertical-align: middle;
+      background: var(--bg3); color: var(--muted);
+    }
+
+    .acct-empty {
+      text-align: center; color: var(--muted); font-size: 11px; padding: 20px 8px;
+    }
+
+    /* Center column — connections */
+    .mapping-center {
+      background: var(--bg2);
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+    }
+    .mapping-center-header {
+      padding: 8px 4px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      font-size: 10px; color: var(--muted); text-align: center;
+      font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .pair-list {
+      flex: 1; overflow-y: auto; padding: 4px 3px;
+      max-height: 300px;
+    }
+    .pair-list::-webkit-scrollbar { width: 3px; }
+    .pair-list::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 2px; }
+
+    .pair-item {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 2px; padding: 5px 3px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 5px; margin-bottom: 4px;
+      font-size: 10px; text-align: center; line-height: 1.3;
+      position: relative; cursor: default;
+    }
+    .pair-item .pair-m { color: #c4b5fd; font-weight: 500; word-break: break-word; }
+    .pair-item .pair-arrow { color: var(--muted); font-size: 9px; }
+    .pair-item .pair-p { color: #7dd3fc; font-weight: 500; word-break: break-word; }
+    .pair-remove {
+      position: absolute; top: -5px; right: -5px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: var(--bg3); border: 1px solid var(--border);
+      color: var(--muted); font-size: 10px; line-height: 16px;
+      text-align: center; cursor: pointer; display: none;
+    }
+    .pair-item:hover .pair-remove { display: block; }
+    .pair-remove:hover { background: var(--red-d); color: #fff; border-color: var(--red-d); }
+
+    .connect-hint {
+      padding: 8px 4px; text-align: center; color: var(--muted);
+      font-size: 10px; line-height: 1.5;
+    }
+    .connect-ready {
+      padding: 6px 4px; text-align: center;
+    }
+    .connect-btn {
+      width: 100%; padding: 6px 4px; font-size: 11px;
+      background: linear-gradient(135deg, #7c3aed, #0ea5e9);
+      color: #fff; border: none; border-radius: 5px;
+      cursor: pointer; font-weight: 600; transition: opacity .15s;
+    }
+    .connect-btn:hover { opacity: .85; }
+
+    /* Bottom bar */
+    .mapping-footer {
+      display: flex; align-items: center; gap: 8px;
+      margin-top: 10px;
+    }
+    .mapping-footer .pair-count { font-size: 11px; color: var(--muted); }
+
+    /* ── Balance preview ── */
+    .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .preview-table th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px; padding: 4px 6px; border-bottom: 1px solid var(--border); }
+    .preview-table td { padding: 6px 6px; border-bottom: 1px solid #1e293b; }
+    .preview-table tr:last-child td { border-bottom: none; }
+    .balance-new  { color: var(--green); font-weight: 500; }
+    .balance-old  { color: var(--muted); text-decoration: line-through; }
+    .balance-same { color: var(--muted); }
+
+    /* ── Checkboxes ── */
+    .sync-cb { width: 14px; height: 14px; accent-color: var(--green); cursor: pointer; margin: 0; }
+    .cb-header { width: 14px; }
+    .preview-table td.cb-cell,
+    .preview-table th.cb-cell { text-align: center; width: 28px; padding: 4px 4px; }
+    .row-disabled td:not(.cb-cell) { opacity: .4; }
+
+    /* ── Misc ── */
+    .row { display: flex; gap: 8px; }
+    .spacer { flex: 1; }
+    .text-muted { color: var(--muted); font-size: 11px; }
+    .spinner { animation: spin 1s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .section-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 14px 0 8px; }
+    .empty-state { text-align: center; color: var(--muted); padding: 24px 0; font-size: 12px; }
+    hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-lockup">
+    <div class="logo-pill logo-monarch">M</div>
+    <div class="logo-arrow">
+      <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+    </div>
+    <div class="logo-pill logo-pl">PL</div>
+  </div>
+  <div class="header-text">
+    <h1>Monarch → ProjectionLab</h1>
+    <p>Account balance sync</p>
+  </div>
+  <button class="gear-btn" id="open-settings" title="Settings">⚙️</button>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-tab="sync">Sync</div>
+  <div class="tab" data-tab="mapping">Account Mapping</div>
+  <div class="tab" data-tab="settings">Settings</div>
+</div>
+
+<!-- ═══════════════════ SYNC TAB ═══════════════════ -->
+<div id="tab-sync" class="panel active">
+  <div id="status-bar" class="status-bar"></div>
+
+  <div id="setup-required" style="display:none">
+    <p class="text-muted" style="margin-bottom:10px">
+      Before syncing, complete the <strong>Settings</strong> tab and map your accounts in the <strong>Account Mapping</strong> tab.
+    </p>
+    <button class="btn btn-ghost btn-full" id="go-settings-btn">Go to Settings →</button>
+  </div>
+
+  <div id="sync-ready">
+    <div class="section-title">Ready to sync</div>
+    <div id="preview-area">
+      <p class="empty-state">Click "Load Preview" to see current balances before syncing.</p>
+    </div>
+    <hr />
+    <div class="row" style="margin-top:4px">
+      <button class="btn btn-ghost" id="preview-btn">👁 Load Preview</button>
+      <label class="text-muted" style="display:flex;align-items:center;gap:4px;margin:0;cursor:pointer">
+        <input type="checkbox" id="hide-unchanged" checked class="sync-cb" />
+        Hide unchanged
+      </label>
+      <div class="spacer"></div>
+      <button class="btn btn-success" id="sync-btn" disabled>⚡ Sync Selected</button>
+    </div>
+    <p class="text-muted" style="margin-top:8px" id="last-sync-label"></p>
+  </div>
+</div>
+
+<!-- ═══════════════════ MAPPING TAB ═══════════════════ -->
+<div id="tab-mapping" class="panel">
+  <div style="text-align:center;padding:24px 0 16px">
+    <div style="font-size:28px;margin-bottom:10px">🔗</div>
+    <p style="font-size:13px;font-weight:600;margin-bottom:6px">Account Mapping</p>
+    <p class="text-muted" style="margin-bottom:16px;font-size:12px">
+      Link Monarch accounts to ProjectionLab accounts in the full mapping editor.<br>
+      Supports filtering by type, sorting, and managing all your links.
+    </p>
+    <button class="btn btn-primary" id="open-mapping-btn">Open Account Mapping ↗</button>
+  </div>
+  <hr />
+  <p class="text-muted" style="text-align:center;font-size:11px" id="mapping-summary"></p>
+</div>
+
+<!-- ═══════════════════ SETTINGS TAB ═══════════════════ -->
+<div id="tab-settings" class="panel">
+
+  <div class="settings-card">
+    <div class="settings-card-header">
+      <div class="settings-card-logo monarch">M</div>
+      <div class="settings-card-title">Monarch Money</div>
+      <div class="settings-card-status unsaved" id="monarch-saved-status">checking…</div>
+    </div>
+    <p class="text-muted" style="font-size:11px;margin-bottom:8px">
+      Just log into <a href="https://app.monarch.com" target="_blank" style="color:#a78bfa">app.monarch.com</a> in this browser — the extension uses your active session automatically.
+    </p>
+    <div class="settings-card-alert" id="monarch-alert"></div>
+    <div class="settings-card-footer">
+      <button class="btn btn-ghost btn-sm" id="test-monarch-btn">🔌 Test Connection</button>
+      <div class="spacer"></div>
+    </div>
+    <details style="margin-top:8px">
+      <summary class="text-muted" style="cursor:pointer;font-size:11px">Advanced: Manual token (optional)</summary>
+      <div style="margin-top:6px">
+        <label>Session Token</label>
+        <input type="password" id="monarch-token" placeholder="Only needed if auto-detection doesn't work" />
+        <p class="text-muted" style="margin-top:5px;font-size:11px">
+          F12 → Network → filter "graphql" → Headers → Authorization: Token <em>xxxxx</em>
+        </p>
+        <div style="margin-top:6px">
+          <button class="btn btn-primary btn-sm" id="save-monarch-btn">💾 Save Token</button>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <div class="settings-card">
+    <div class="settings-card-header">
+      <div class="settings-card-logo pl">PL</div>
+      <div class="settings-card-title">ProjectionLab</div>
+      <div class="settings-card-status unsaved" id="pl-saved-status">not saved</div>
+    </div>
+    <label>Plugin API Key
+      <span class="text-muted" style="float:right">
+        <a href="https://app.projectionlab.com/settings" target="_blank" style="color:#38bdf8">Get key ↗</a>
+      </span>
+    </label>
+    <input type="password" id="pl-api-key" placeholder="Paste your ProjectionLab Plugin API key" />
+    <p class="text-muted" style="margin-top:5px;font-size:11px">
+      ProjectionLab → Account Settings → Plugins → Enable Plugins → copy Plugin API Key.
+    </p>
+    <div class="settings-card-alert" id="pl-alert"></div>
+    <div class="settings-card-footer">
+      <button class="btn btn-ghost btn-sm" id="test-pl-btn">🔌 Test</button>
+      <div class="spacer"></div>
+      <button class="btn btn-primary btn-sm" id="save-pl-btn">💾 Save</button>
+    </div>
+  </div>
+
+  <hr />
+  <div class="support-section">
+    <a class="support-btn" href="https://account.venmo.com/u/Brent-Atkison" target="_blank">
+      <svg viewBox="0 0 24 24"><path d="M2 21l1.5-1.5L12 6l8.5 13.5L22 21H2zm10-13.5c0 .83-.67 1.5-1.5 1.5S9 8.33 9 7.5 9.67 6 10.5 6s1.5.67 1.5 1.5z"/></svg>
+      ☕ Buy me a coffee
+    </a>
+    <p class="text-muted" style="margin-top:6px;font-size:10px">If you find this extension useful, consider supporting development!</p>
+  </div>
+
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

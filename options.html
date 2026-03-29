@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Monarch → ProjectionLab · Account Mapping</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green:   #4ade80; --green-d: #16a34a;
+      --blue:    #60a5fa; --blue-d:  #2563eb;
+      --red:     #f87171; --red-d:   #dc2626;
+      --purple:  #a855f7; --purple-d:#7c3aed;
+      --sky:     #38bdf8; --sky-d:   #0284c7;
+      --bg:      #0f172a; --bg2: #1e293b; --bg3: #334155;
+      --text:    #f1f5f9; --muted: #94a3b8; --border: #334155;
+      --radius:  8px;
+    }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13px; line-height: 1.5; min-height: 100vh;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 24px; background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo-lockup { display: flex; align-items: center; gap: 6px; }
+    .logo-pill {
+      width: 28px; height: 28px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: #fff;
+    }
+    .logo-monarch { background: linear-gradient(135deg,#7c3aed,#a855f7); box-shadow:0 0 10px rgba(124,58,237,.35); }
+    .logo-pl      { background: linear-gradient(135deg,#0284c7,#38bdf8); box-shadow:0 0 10px rgba(14,165,233,.35); }
+    .logo-arrow svg { width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round; }
+    .topbar-title { font-size:15px;font-weight:600;flex:1; }
+    .topbar-sub   { font-size:11px;color:var(--muted); }
+
+    /* ── Page nav ── */
+    .page-nav {
+      display: flex; gap: 4px;
+      padding: 12px 24px; background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-btn {
+      padding: 6px 14px; border-radius: var(--radius);
+      border: 1px solid transparent; background: none;
+      color: var(--muted); font-size: 12px; font-weight: 500;
+      cursor: pointer; transition: all .15s;
+    }
+    .nav-btn:hover  { background: var(--bg3); color: var(--text); }
+    .nav-btn.active { background: var(--bg3); color: var(--text); border-color: var(--border); }
+
+    /* ── Main layout ── */
+    .main { max-width: 1100px; margin: 0 auto; padding: 20px 24px; }
+
+    /* ── Status banner ── */
+    .status-bar { display:none; padding:10px 14px; border-radius:var(--radius); font-size:12px; margin-bottom:16px; }
+    .status-bar.info    { background:#1e3a5f; color:var(--blue);  display:block; }
+    .status-bar.success { background:#14532d; color:var(--green); display:block; }
+    .status-bar.error   { background:#450a0a; color:var(--red);   display:block; }
+    .status-bar.warning { background:#451a03; color:#fb923c;      display:block; }
+
+    /* ── Pages ── */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ════════════════════════════════════
+       PAGE 1 — LINK ACCOUNTS
+    ════════════════════════════════════ */
+    .link-layout {
+      display: grid;
+      grid-template-columns: 1fr 80px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    /* Column card */
+    .acct-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .acct-card-header {
+      padding: 10px 14px; background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .acct-card-dot { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
+    .dot-monarch { background: #a855f7; }
+    .dot-pl      { background: #38bdf8; }
+    .acct-card-title { font-size:12px;font-weight:600;flex:1; }
+    .acct-card-count { font-size:11px;color:var(--muted); }
+
+    /* Toolbar inside each column */
+    .acct-toolbar {
+      padding: 8px 10px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+    }
+    .toolbar-search {
+      flex: 1; min-width: 100px;
+      padding: 5px 9px; background: var(--bg2);
+      border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); font-size: 12px; outline: none;
+    }
+    .toolbar-search:focus { border-color: var(--blue); }
+    .toolbar-search::placeholder { color: var(--muted); }
+    .filter-pills { display:flex;gap:4px;flex-wrap:wrap; }
+    .pill {
+      padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight:500;
+      border: 1px solid var(--border); background: none; color: var(--muted);
+      cursor: pointer; transition: all .12s; white-space: nowrap;
+    }
+    .pill:hover  { background:var(--bg3); color:var(--text); }
+    .pill.active { background:var(--bg3); color:var(--text); border-color:#64748b; }
+    .sort-select {
+      padding: 4px 8px; background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); font-size: 11px; outline: none; cursor:pointer;
+    }
+
+    /* Account list */
+    .acct-list {
+      overflow-y: auto; max-height: 520px; padding: 6px;
+    }
+    .acct-list::-webkit-scrollbar { width:4px; }
+    .acct-list::-webkit-scrollbar-thumb { background:var(--bg3); border-radius:2px; }
+
+    .acct-item {
+      padding: 8px 10px; border-radius: 6px; cursor: pointer;
+      margin-bottom: 3px; border: 1px solid transparent;
+      transition: background .1s, border-color .1s; user-select: none;
+    }
+    .acct-item:hover   { background: var(--bg3); }
+    .acct-item.linked  { opacity:.35; cursor:default; pointer-events:none; }
+    .acct-item.sel-m   { background:rgba(124,58,237,.2); border-color:#7c3aed; }
+    .acct-item.sel-pl  { background:rgba(2,132,199,.2);  border-color:#0284c7; }
+    .acct-item-row     { display:flex;align-items:center;gap:6px; }
+    .acct-item-name    { font-size:12px;font-weight:500;flex:1; }
+    .acct-item-balance { font-size:11px;color:var(--muted); white-space:nowrap; }
+    .acct-item-tags    { display:flex;gap:4px;margin-top:3px;flex-wrap:wrap; }
+    .tag {
+      font-size:10px; padding:1px 6px; border-radius:10px;
+      background:var(--bg3); color:var(--muted);
+    }
+    .tag-type    { background:rgba(124,58,237,.15); color:#c4b5fd; }
+    .tag-inst    { background:rgba(14,165,233,.12);  color:#7dd3fc; }
+    .tag-linked  { background:rgba(74,222,128,.12);  color:#4ade80; }
+    .acct-empty  { text-align:center;color:var(--muted);font-size:12px;padding:32px 16px; }
+
+    /* Center connector column */
+    .connector-col {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 8px; padding-top: 56px;
+    }
+    .connect-indicator {
+      width: 60px; text-align: center; padding: 8px 4px;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); font-size: 11px; color: var(--muted);
+    }
+    .connect-btn-big {
+      width: 60px; padding: 10px 4px;
+      background: linear-gradient(135deg,#7c3aed,#0284c7);
+      color: #fff; border: none; border-radius: var(--radius);
+      font-size: 12px; font-weight: 700; cursor: pointer;
+      transition: opacity .15s; display: none; text-align:center;
+    }
+    .connect-btn-big:hover { opacity:.85; }
+    .connect-btn-big.visible { display: block; }
+    .connector-hint { font-size:10px;color:var(--muted);text-align:center;line-height:1.5; }
+
+    /* Load buttons */
+    .load-row { display:flex;gap:8px;margin-bottom:16px;align-items:center; }
+
+    /* ════════════════════════════════════
+       PAGE 2 — MANAGE LINKS
+    ════════════════════════════════════ */
+    .links-toolbar {
+      display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;
+    }
+    .links-search {
+      flex:1;min-width:160px;padding:7px 10px;
+      background:var(--bg2);border:1px solid var(--border);
+      border-radius:var(--radius);color:var(--text);font-size:13px;outline:none;
+    }
+    .links-search:focus { border-color:var(--blue); }
+
+    .links-table { width:100%;border-collapse:collapse; }
+    .links-table th {
+      text-align:left;font-size:11px;font-weight:600;color:var(--muted);
+      text-transform:uppercase;letter-spacing:.04em;
+      padding:8px 12px;border-bottom:1px solid var(--border);
+      background:var(--bg2);
+    }
+    .links-table th.sortable { cursor:pointer;user-select:none; }
+    .links-table th.sortable:hover { color:var(--text); }
+    .sort-icon { margin-left:4px;opacity:.5; }
+    .sort-icon.asc::after  { content:"↑"; }
+    .sort-icon.desc::after { content:"↓"; }
+    .links-table td {
+      padding:10px 12px;border-bottom:1px solid #1e293b;vertical-align:middle;
+    }
+    .links-table tr:last-child td { border-bottom:none; }
+    .links-table tr:hover td { background:rgba(255,255,255,.02); }
+    .link-m-name  { font-weight:500;font-size:13px; }
+    .link-m-sub   { font-size:11px;color:var(--muted);margin-top:2px; }
+    .link-arrow   { color:var(--muted);font-size:16px;text-align:center; }
+    .link-pl-name { font-weight:500;font-size:13px;color:#7dd3fc; }
+    .link-pl-sub  { font-size:11px;color:var(--muted);margin-top:2px; }
+    .unlink-btn {
+      padding:4px 10px;border-radius:5px;background:none;
+      border:1px solid var(--border);color:var(--muted);
+      font-size:11px;cursor:pointer;transition:all .15s;
+    }
+    .unlink-btn:hover { background:#450a0a;color:var(--red);border-color:var(--red-d); }
+    .links-empty { text-align:center;color:var(--muted);padding:48px;font-size:13px; }
+    .links-count  { font-size:12px;color:var(--muted);margin-left:auto; }
+
+    /* ── Shared ── */
+    .btn {
+      display:inline-flex;align-items:center;justify-content:center;gap:6px;
+      padding:8px 14px;border-radius:var(--radius);font-size:13px;font-weight:500;
+      cursor:pointer;border:none;transition:opacity .15s,background .15s;
+    }
+    .btn:disabled { opacity:.45;cursor:not-allowed; }
+    .btn-primary { background:var(--blue-d);color:#fff; }
+    .btn-primary:not(:disabled):hover { background:var(--blue); }
+    .btn-success { background:var(--green-d);color:#fff; }
+    .btn-success:not(:disabled):hover { background:var(--green);color:#000; }
+    .btn-ghost   { background:var(--bg3);color:var(--text); }
+    .btn-ghost:not(:disabled):hover { background:#475569; }
+    .btn-sm { padding:5px 11px;font-size:12px; }
+    .spinner { animation:spin 1s linear infinite;display:inline-block; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .flex { display:flex; } .gap-8 { gap:8px; } .spacer { flex:1; }
+    .section-title {
+      font-size:11px;font-weight:600;color:var(--muted);
+      text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="logo-lockup">
+    <div class="logo-pill logo-monarch">M</div>
+    <div class="logo-arrow">
+      <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+    </div>
+    <div class="logo-pill logo-pl">PL</div>
+  </div>
+  <div>
+    <div class="topbar-title">Monarch → ProjectionLab</div>
+    <div class="topbar-sub">Account Mapping</div>
+  </div>
+</div>
+
+<!-- Page nav -->
+<div class="page-nav">
+  <button class="nav-btn active" data-page="link">🔗 Link Accounts</button>
+  <button class="nav-btn" data-page="manage">⚙️ Manage Links</button>
+</div>
+
+<div class="main">
+  <div id="status-bar" class="status-bar"></div>
+
+  <!-- ══════════════ PAGE: LINK ACCOUNTS ══════════════ -->
+  <div id="page-link" class="page active">
+
+    <div class="load-row">
+      <button class="btn btn-ghost btn-sm" id="load-monarch-btn">
+        <span style="color:#a855f7">◉</span> Load Monarch
+      </button>
+      <button class="btn btn-ghost btn-sm" id="load-pl-btn">
+        <span style="color:#38bdf8">◉</span> Load ProjectionLab
+      </button>
+      <button class="btn btn-ghost btn-sm" id="load-both-btn">🔄 Load Both</button>
+      <button class="btn btn-primary btn-sm" id="auto-link-btn" title="Auto-link accounts with identical names">🔗 Auto-Link by Name</button>
+      <div class="spacer"></div>
+      <span id="selection-hint" style="font-size:11px;color:var(--muted)"></span>
+    </div>
+
+    <div class="link-layout">
+
+      <!-- LEFT: Monarch -->
+      <div class="acct-card">
+        <div class="acct-card-header">
+          <span class="acct-card-dot dot-monarch"></span>
+          <span class="acct-card-title">Monarch Accounts</span>
+          <span class="acct-card-count" id="m-count"></span>
+        </div>
+        <div class="acct-toolbar">
+          <input class="toolbar-search" id="m-search" placeholder="Search…" />
+          <select class="sort-select" id="m-sort">
+            <option value="name">A–Z</option>
+            <option value="balance-desc">Balance ↓</option>
+            <option value="balance-asc">Balance ↑</option>
+            <option value="type">Type</option>
+            <option value="institution">Institution</option>
+          </select>
+        </div>
+        <div class="acct-toolbar" id="m-filter-pills" style="padding-top:4px;padding-bottom:6px;">
+          <div class="filter-pills">
+            <button class="pill active" data-filter="all">All</button>
+          </div>
+        </div>
+        <div class="acct-list" id="m-list">
+          <div class="acct-empty">Click "Load Monarch" to fetch accounts</div>
+        </div>
+      </div>
+
+      <!-- CENTER: connector -->
+      <div class="connector-col">
+        <div class="connect-indicator" id="connect-indicator">
+          <div style="font-size:18px;margin-bottom:4px">🔗</div>
+          <div>Select one from each side</div>
+        </div>
+        <button class="connect-btn-big" id="connect-btn">Link →</button>
+        <div class="connector-hint" id="connector-hint"></div>
+      </div>
+
+      <!-- RIGHT: ProjectionLab -->
+      <div class="acct-card">
+        <div class="acct-card-header">
+          <span class="acct-card-dot dot-pl"></span>
+          <span class="acct-card-title">ProjectionLab Accounts</span>
+          <span class="acct-card-count" id="pl-count"></span>
+        </div>
+        <div class="acct-toolbar">
+          <input class="toolbar-search" id="pl-search" placeholder="Search…" />
+          <select class="sort-select" id="pl-sort">
+            <option value="name">A–Z</option>
+            <option value="balance-desc">Balance ↓</option>
+            <option value="balance-asc">Balance ↑</option>
+          </select>
+        </div>
+        <div class="acct-toolbar" style="padding-top:4px;padding-bottom:6px;">
+          <div class="filter-pills" id="pl-filter-pills">
+            <button class="pill active" data-filter="all">All</button>
+          </div>
+        </div>
+        <div class="acct-list" id="pl-list">
+          <div class="acct-empty">Click "Load ProjectionLab" to fetch accounts</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════ PAGE: MANAGE LINKS ══════════════ -->
+  <div id="page-manage" class="page">
+    <div class="links-toolbar">
+      <div class="section-title" style="margin:0">Saved Account Links</div>
+      <input class="links-search" id="links-search" placeholder="Filter links…" />
+      <span class="links-count" id="links-count"></span>
+      <button class="btn btn-ghost btn-sm" id="clear-all-btn" style="color:var(--red)">🗑 Clear All</button>
+    </div>
+
+    <div id="links-container">
+      <div class="links-empty">No account links saved yet.<br>Go to "Link Accounts" to create some.</div>
+    </div>
+  </div>
+
+</div>
+
+<script src="options.js"></script>
+</body>
+</html>
