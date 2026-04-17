@@ -9,7 +9,8 @@
   "host_permissions": [
     "https://app.monarch.com/*",
     "https://api.monarch.com/*",
-    "https://app.projectionlab.com/*"
+    "https://app.projectionlab.com/*",
+    "https://ea.projectionlab.com/*"
   ],
 
   "options_page": "options.html",
@@ -27,7 +28,7 @@
 
   "content_scripts": [
     {
-      "matches": ["https://app.projectionlab.com/*"],
+      "matches": ["https://app.projectionlab.com/*", "https://ea.projectionlab.com/*"],
       "js": ["src/pl-bridge.js"],
       "run_at": "document_idle"
     },
@@ -41,7 +42,7 @@
   "web_accessible_resources": [
     {
       "resources": ["src/pl-page.js"],
-      "matches": ["https://app.projectionlab.com/*"]
+      "matches": ["https://app.projectionlab.com/*", "https://ea.projectionlab.com/*"]
     },
     {
       "resources": ["src/monarch-page.js"],

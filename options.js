@@ -70,7 +70,7 @@ async function loadPL() {
   }
   const result = await chrome.runtime.sendMessage({ type: "CALL_PL", action: "exportData", payload: { key: plApiKey } });
   btn.disabled = false; btn.innerHTML = '<span style="color:#38bdf8">◉</span> Load ProjectionLab';
-  if (!result.success) { showStatus("ProjectionLab: " + (result.error || "Open app.projectionlab.com in a tab."), "error"); return; }
+  if (!result.success) { showStatus("ProjectionLab: " + (result.error || "Open app.projectionlab.com or ea.projectionlab.com in a tab."), "error"); return; }
 
   const today = result.result?.today || {};
   plAccounts = [

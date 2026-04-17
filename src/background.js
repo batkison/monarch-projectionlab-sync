@@ -196,9 +196,13 @@ async function fetchMonarchAccounts(token) {
 // ─── ProjectionLab ────────────────────────────────────────────────────────────
 
 async function callProjectionLabTab(action, payload) {
-  const tabs = await chrome.tabs.query({ url: "https://app.projectionlab.com/*" });
+  const [appTabs, eaTabs] = await Promise.all([
+    chrome.tabs.query({ url: "https://app.projectionlab.com/*" }),
+    chrome.tabs.query({ url: "https://ea.projectionlab.com/*" }),
+  ]);
+  const tabs = [...appTabs, ...eaTabs];
   if (!tabs.length) {
-    return { success: false, error: "No ProjectionLab tab found. Open app.projectionlab.com first." };
+    return { success: false, error: "No ProjectionLab tab found. Open app.projectionlab.com or ea.projectionlab.com first." };
   }
   const tab = tabs[0];
 
@@ -241,7 +245,7 @@ async function callProjectionLabTab(action, payload) {
           }, (retryAck) => {
             if (chrome.runtime.lastError) {
               delete _plPending[reqId];
-              resolve({ success: false, error: "Could not reach ProjectionLab tab. Try refreshing app.projectionlab.com." });
+              resolve({ success: false, error: "Could not reach ProjectionLab tab. Try refreshing the ProjectionLab tab." });
             }
           });
         }, 800);

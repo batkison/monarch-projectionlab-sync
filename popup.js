@@ -151,7 +151,7 @@ $("test-pl-btn").addEventListener("click", async () => {
   const result = await callProjectionLab("exportData", { key });
   setLoading(btn, false, "🔌 Test");
   if (result.success) showCardAlert("pl-alert", "✓ Connected to ProjectionLab!", "success");
-  else if (result.error?.includes("No ProjectionLab")) showCardAlert("pl-alert", "Open app.projectionlab.com in a tab first.", "error");
+  else if (result.error?.includes("No ProjectionLab")) showCardAlert("pl-alert", "Open app.projectionlab.com or ea.projectionlab.com in a tab first.", "error");
   else showCardAlert("pl-alert", result.error || "Connection failed.", "error");
 });
 
@@ -189,7 +189,7 @@ $("preview-btn").addEventListener("click", async () => {
 
   const plResult = await callProjectionLab("exportData", { key: plApiKey });
   if (!plResult.success) {
-    showStatus("status-bar", `ProjectionLab: ${plResult.error || "Open app.projectionlab.com in a tab."}`, "error");
+    showStatus("status-bar", `ProjectionLab: ${plResult.error || "Open app.projectionlab.com or ea.projectionlab.com in a tab."}`, "error");
     setLoading(btn, false, "👁 Load Preview");
     return;
   }
