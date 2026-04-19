@@ -24,7 +24,9 @@ if (!window.__plPageRegistered) {
       if (_action === "exportData") {
         result = await api.exportData({ key: payload.key });
       } else if (_action === "updateAccount") {
-        result = await Promise.resolve(api.updateAccount(payload.accountId, { balance: payload.balance }, { key: payload.key }));
+        const updateData = {};
+        updateData[payload.field ?? "balance"] = payload.balance;
+        result = await Promise.resolve(api.updateAccount(payload.accountId, updateData, { key: payload.key }));
       }
       window.postMessage({ _source: "monarch_pl_sync_page", _reqId, success: true, result }, "*");
     } catch(err) {

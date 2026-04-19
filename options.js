@@ -4,6 +4,8 @@
 let monarchAccounts = [];
 let plAccounts      = [];
 let mapping         = [];
+let assetHasLoan    = {}; // { [plAssetId]: boolean } — persisted in chrome.storage
+let rawPlToday      = null; // cached for rebuild after loan toggle
 
 let selectedM  = null;
 let selectedPL = null;
@@ -72,15 +74,46 @@ async function loadPL() {
   btn.disabled = false; btn.innerHTML = '<span style="color:#38bdf8">◉</span> Load ProjectionLab';
   if (!result.success) { showStatus("ProjectionLab: " + (result.error || "Open app.projectionlab.com or ea.projectionlab.com in a tab."), "error"); return; }
 
-  const today = result.result?.today || {};
-  plAccounts = [
-    ...(today.savingsAccounts    || []).map(a => ({...a, _plType: "Savings"})),
-    ...(today.investmentAccounts || []).map(a => ({...a, _plType: "Investment"})),
-    ...(today.assets             || []).map(a => ({...a, _plType: "Asset"})),
-    ...(today.debts              || []).map(a => ({...a, _plType: "Debt"})),
-  ];
+  rawPlToday = result.result?.today || {};
+  buildPlAccounts(rawPlToday);
   buildPlFilterPills();
   renderPlList();
+}
+
+function buildPlAccounts(today) {
+  const expandedAssets = [];
+  for (const a of (today.assets || [])) {
+    const hasAmount  = a.amount  != null;
+    const hasBalance = a.balance != null;
+    const isDual     = hasAmount && hasBalance;
+    const showLoan   = isDual && assetHasLoan[a.id] !== false;
+
+    // Primary/value entry
+    expandedAssets.push({
+      ...a,
+      _plType: "Asset",
+      _plField: hasAmount ? "amount" : "balance",
+      _vid: a.id + ":" + (hasAmount ? "amount" : "balance"),
+      balance: hasAmount ? a.amount : a.balance,
+      _isDual: isDual,
+      ...(showLoan ? { _fieldLabel: "value" } : {}),
+    });
+
+    // Loan entry — only shown when the asset has both fields and user hasn't disabled it
+    if (showLoan) {
+      expandedAssets.push({
+        ...a, _plType: "Asset", _plField: "balance", _vid: a.id + ":balance",
+        balance: a.balance, _fieldLabel: "loan",
+      });
+    }
+  }
+
+  plAccounts = [
+    ...(today.savingsAccounts    || []).map(a => ({...a, _plType: "Savings",    _plField: "balance", _vid: a.id + ":balance"})),
+    ...(today.investmentAccounts || []).map(a => ({...a, _plType: "Investment", _plField: "balance", _vid: a.id + ":balance"})),
+    ...expandedAssets,
+    ...(today.debts              || []).map(a => ({...a, _plType: "Debt",       _plField: "balance", _vid: a.id + ":balance"})),
+  ];
 }
 
 // ─── Filter pills ──────────────────────────────────────────────────────────────
@@ -179,7 +212,7 @@ function sortAccounts(arr, sortKey) {
 }
 
 function mappedMIds()  { return new Set(mapping.map(m => m.monarchId)); }
-function mappedPLIds() { return new Set(mapping.map(m => m.plId)); }
+function mappedPLIds() { return new Set(mapping.map(m => m.plId + ":" + (m.plField ?? "balance"))); }
 
 function renderMonarchList() {
   const list    = $("m-list");
@@ -236,15 +269,21 @@ function renderPlList() {
   }
 
   list.innerHTML = visible.map(a => {
-    const isLinked   = mapped.has(a.id);
-    const isSelected = a.id === selectedPL;
+    const vid        = a._vid ?? a.id;
+    const isLinked   = mapped.has(vid);
+    const isSelected = vid === selectedPL;
     const cls = ["acct-item", isLinked ? "linked" : "", isSelected ? "sel-pl" : ""].filter(Boolean).join(" ");
+    const loanToggle = (a._isDual && a._plField === "amount")
+      ? `<label class="loan-toggle"><input type="checkbox" class="loan-cb" data-asset-id="${esc(a.id)}" ${assetHasLoan[a.id] !== false ? "checked" : ""}> loan</label>`
+      : "";
     const tags = [
-      a._plType  ? `<span class="tag tag-type">${esc(a._plType)}</span>` : "",
-      isLinked   ? `<span class="tag tag-linked">linked</span>` : "",
+      a._plType     ? `<span class="tag tag-type">${esc(a._plType)}</span>` : "",
+      a._fieldLabel ? `<span class="tag tag-field">${esc(a._fieldLabel)}</span>` : "",
+      isLinked      ? `<span class="tag tag-linked">linked</span>` : "",
+      loanToggle,
     ].filter(Boolean).join("");
     return `
-      <div class="${cls}" data-id="${esc(a.id)}">
+      <div class="${cls}" data-id="${esc(vid)}">
         <div class="acct-item-row">
           <span class="acct-item-name">${esc(a.name)}</span>
           <span class="acct-item-balance">${fmt(a.balance)}</span>
@@ -260,6 +299,17 @@ function renderPlList() {
       updateConnector();
     });
   });
+
+  list.querySelectorAll(".loan-toggle").forEach(label => {
+    label.addEventListener("click", e => e.stopPropagation());
+  });
+  list.querySelectorAll(".loan-cb").forEach(cb => {
+    cb.addEventListener("change", () => {
+      assetHasLoan[cb.dataset.assetId] = cb.checked;
+      chrome.storage.sync.set({ assetHasLoan });
+      if (rawPlToday) { buildPlAccounts(rawPlToday); renderPlList(); }
+    });
+  });
 }
 
 // ─── Connector ────────────────────────────────────────────────────────────────
@@ -270,7 +320,7 @@ function updateConnector() {
   const selHint   = $("selection-hint");
 
   const mAcc  = monarchAccounts.find(a => a.id === selectedM);
-  const plAcc = plAccounts.find(a => a.id === selectedPL);
+  const plAcc = plAccounts.find(a => (a._vid ?? a.id) === selectedPL);
 
   if (mAcc && plAcc) {
     indicator.style.display = "none";
@@ -289,10 +339,19 @@ function updateConnector() {
 
 $("connect-btn").addEventListener("click", () => {
   if (!selectedM || !selectedPL) return;
-  if (mapping.some(m => m.monarchId === selectedM || m.plId === selectedPL)) {
-    showStatus("One of these accounts is already linked. Unlink it first in Manage Links.", "warning"); return;
+
+  // Parse virtual ID into real plId and plField
+  const colonIdx = selectedPL.lastIndexOf(":");
+  const plId    = colonIdx >= 0 ? selectedPL.slice(0, colonIdx) : selectedPL;
+  const plField = colonIdx >= 0 ? selectedPL.slice(colonIdx + 1) : "balance";
+
+  if (mapping.some(m => m.monarchId === selectedM)) {
+    showStatus("This Monarch account is already linked. Unlink it first in Manage Links.", "warning"); return;
   }
-  mapping.push({ monarchId: selectedM, plId: selectedPL });
+  if (mapping.some(m => m.plId === plId && (m.plField ?? "balance") === plField)) {
+    showStatus("This ProjectionLab field is already linked. Unlink it first in Manage Links.", "warning"); return;
+  }
+  mapping.push({ monarchId: selectedM, plId, plField });
   saveMapping();
   selectedM = null; selectedPL = null;
   renderMonarchList(); renderPlList(); updateConnector();
@@ -315,11 +374,12 @@ $("auto-link-btn").addEventListener("click", () => {
     const normalizedM = mAcc.name.trim().toLowerCase();
 
     for (const plAcc of plAccounts) {
-      if (mappedPL.has(plAcc.id)) continue;
+      const vid = plAcc._vid ?? plAcc.id;
+      if (mappedPL.has(vid)) continue;
       if (plAcc.name.trim().toLowerCase() === normalizedM) {
-        mapping.push({ monarchId: mAcc.id, plId: plAcc.id });
+        mapping.push({ monarchId: mAcc.id, plId: plAcc.id, plField: plAcc._plField ?? "balance" });
         mappedM.add(mAcc.id);
-        mappedPL.add(plAcc.id);
+        mappedPL.add(vid);
         linked++;
         break;
       }
@@ -350,7 +410,8 @@ function renderLinksTable() {
 
   let visible = mapping.map((m, i) => {
     const mAcc  = monarchAccounts.find(a => a.id === m.monarchId);
-    const plAcc = plAccounts.find(a => a.id === m.plId);
+    const vid   = m.plId + ":" + (m.plField ?? "balance");
+    const plAcc = plAccounts.find(a => (a._vid ?? a.id) === vid);
     return { i, m, mAcc, plAcc,
       mName:  mAcc?.name  ?? m.monarchId,
       plName: plAcc?.name ?? m.plId,
@@ -400,7 +461,7 @@ function renderLinksTable() {
             <td class="link-arrow">→</td>
             <td>
               <div class="link-pl-name">${esc(r.plName)}</div>
-              ${r.plAcc?._plType ? `<div class="link-pl-sub">${esc(r.plAcc._plType)}</div>` : ""}
+              ${(r.plAcc?._plType || r.plAcc?._fieldLabel) ? `<div class="link-pl-sub">${[r.plAcc?._plType, r.plAcc?._fieldLabel].filter(Boolean).map(esc).join(" · ")}</div>` : ""}
             </td>
             <td>
               <button class="unlink-btn" data-index="${r.i}">Unlink</button>
@@ -464,7 +525,8 @@ function fmt(n) {
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
-chrome.storage.sync.get(["accountMapping"], ({ accountMapping }) => {
+chrome.storage.sync.get(["accountMapping", "assetHasLoan"], ({ accountMapping, assetHasLoan: ahl }) => {
   if (accountMapping?.length) mapping = accountMapping;
+  if (ahl) assetHasLoan = ahl;
   renderLinksTable();
 });

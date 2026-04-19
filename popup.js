@@ -207,16 +207,19 @@ $("preview-btn").addEventListener("click", async () => {
     const mAcc = mResult.accounts.find(a => a.id === m.monarchId);
     const pAcc = allPl.find(a => a.id === m.plId);
     if (!mAcc || !pAcc) continue;
-    const hasChanged = Math.abs(mAcc.balance - pAcc.balance) >= 0.01;
+    const plField = m.plField ?? "balance";
+    const pAccBalance = pAcc[plField] ?? 0;
+    const hasChanged = Math.abs(mAcc.balance - pAccBalance) >= 0.01;
     previewData.push({
       monarchId: mAcc.id,
       plId: pAcc.id,
+      plField,
       name: mAcc.name,
       plName: pAcc.name,
-      oldBalance: pAcc.balance,
+      oldBalance: pAccBalance,
       newBalance: mAcc.balance,
       hasChanged,
-      selected: hasChanged, // only pre-select accounts with actual changes
+      selected: hasChanged,
     });
   }
 
@@ -326,7 +329,7 @@ $("sync-btn").addEventListener("click", async () => {
   let successCount = 0;
   const errors = [];
   for (const row of toSync) {
-    const result = await callProjectionLab("updateAccount", { key: plApiKey, accountId: row.plId, balance: row.newBalance });
+    const result = await callProjectionLab("updateAccount", { key: plApiKey, accountId: row.plId, balance: row.newBalance, field: row.plField ?? "balance" });
     if (result.success) successCount++;
     else errors.push(`${row.name}: ${result.error}`);
   }
