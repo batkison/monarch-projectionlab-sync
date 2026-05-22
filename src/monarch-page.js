@@ -1,46 +1,14 @@
 // monarch-page.js — Injected into MAIN world on app.monarch.com
-// Reads the auth token from localStorage and makes authenticated GraphQL calls.
-// Monarch uses "Authorization: Token xxx" (not cookies) for API auth.
+// Monarch uses session cookies + CSRF token for API auth (no longer a localStorage token).
+// Running in MAIN world on app.monarch.com lets us use credentials: "include" to send
+// those cookies cross-site to api.monarch.com, matching what the Monarch app itself does.
 
 if (!window.__monarchPageRegistered) {
   window.__monarchPageRegistered = true;
 
-  // Extract the Monarch auth token from localStorage.
-  // Monarch stores it at: persist:root -> user (JSON string) -> token
-  function getMonarchToken() {
-    try {
-      const root = localStorage.getItem("persist:root");
-      if (root) {
-        const parsed = JSON.parse(root);
-        if (parsed.user) {
-          const user = JSON.parse(parsed.user);
-          if (user.token) return user.token;
-        }
-      }
-    } catch (_) {}
-
-    // Fallback: scan all localStorage keys for anything that looks like a token
-    for (const key of Object.keys(localStorage)) {
-      const val = localStorage.getItem(key);
-      if (!val || val.length < 20) continue;
-      // Try to parse JSON values that might contain a token
-      if (val.startsWith("{")) {
-        try {
-          const parsed = JSON.parse(val);
-          if (parsed.token && typeof parsed.token === "string" && parsed.token.length > 20) return parsed.token;
-          // Check nested: parsed might have a stringified sub-object with a token
-          for (const v of Object.values(parsed)) {
-            if (typeof v === "string" && v.startsWith("{")) {
-              try {
-                const inner = JSON.parse(v);
-                if (inner.token && typeof inner.token === "string" && inner.token.length > 20) return inner.token;
-              } catch (_) {}
-            }
-          }
-        } catch (_) {}
-      }
-    }
-    return null;
+  function getCsrfToken() {
+    const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return match ? match[1] : null;
   }
 
   window.addEventListener("message", async function(event) {
@@ -51,27 +19,25 @@ if (!window.__monarchPageRegistered) {
     if (_action !== "getAccounts") return;
 
     try {
-      const token = getMonarchToken();
-      if (!token) {
-        // Log all localStorage keys to help debug
-        console.log("[Monarch-Page] localStorage keys:", Object.keys(localStorage));
+      const csrfToken = getCsrfToken();
+      if (!csrfToken) {
         window.postMessage({
           _source: "monarch_pl_sync_monarch_page", _reqId,
           success: false,
-          error: "Could not find Monarch auth token in localStorage. Make sure you are logged into Monarch in this tab.",
+          error: "Could not find CSRF token. Make sure you are logged into Monarch in this tab.",
         }, "*");
         return;
       }
 
-      console.log("[Monarch-Page] Found auth token, making API call...");
-
       const res = await fetch("https://api.monarch.com/graphql", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
-          "Authorization": "Token " + token,
           "client-platform": "web",
+          "X-Csrftoken": csrfToken,
+          "Monarch-Client": "monarch-core-web-app-graphql",
         },
         body: JSON.stringify({
           operationName: "GetAccounts",

@@ -81,11 +81,10 @@ $("go-settings-btn")?.addEventListener("click", () => document.querySelector('[d
 $("open-mapping-btn").addEventListener("click", () => chrome.runtime.openOptionsPage());
 
 // ─── Settings — load & auto-detect Monarch ──────────────────────────────────
-chrome.storage.sync.get(["monarchToken", "plApiKey"], ({ monarchToken, plApiKey }) => {
-  if (monarchToken) { $("monarch-token").value = monarchToken; }
-  if (plApiKey)     { $("pl-api-key").value = plApiKey; setSavedStatus("pl-saved-status", true); }
+chrome.storage.sync.get(["plApiKey"], ({ plApiKey }) => {
+  if (plApiKey) { $("pl-api-key").value = plApiKey; setSavedStatus("pl-saved-status", true); }
 
-  testMonarchConnection(monarchToken);
+  testMonarchConnection();
 
   checkSetupComplete();
   updateLastSyncLabel();
@@ -94,39 +93,25 @@ chrome.storage.sync.get(["monarchToken", "plApiKey"], ({ monarchToken, plApiKey 
 $("pl-api-key").addEventListener("input", () => setSavedStatus("pl-saved-status", false));
 
 // ─── Monarch connection test ────────────────────────────────────────────────
-async function testMonarchConnection(token) {
+async function testMonarchConnection() {
   setMonarchStatus(false, "checking…");
-  let result = await chrome.runtime.sendMessage({ type: "VALIDATE_MONARCH_TOKEN" });
-  if (!result.success && token) {
-    result = await chrome.runtime.sendMessage({ type: "VALIDATE_MONARCH_TOKEN", token });
-  }
+  const result = await chrome.runtime.sendMessage({ type: "VALIDATE_MONARCH_TOKEN" });
   if (result.success) {
     setMonarchStatus(true, "✓ connected");
     showCardAlert("monarch-alert", `✓ Connected to Monarch (${result.accounts.length} accounts found)`, "success");
   } else {
     setMonarchStatus(false, "not connected");
-    showCardAlert("monarch-alert", "Open app.monarch.com in a tab and log in, then try again. Or provide a session token below.", "error");
+    showCardAlert("monarch-alert", "Open app.monarch.com in a tab and log in, then try again.", "error");
   }
   checkSetupComplete();
 }
 
 // ─── Settings — Monarch ───────────────────────────────────────────────────────
-$("save-monarch-btn").addEventListener("click", () => {
-  const token = $("monarch-token").value.trim();
-  if (!token) { showCardAlert("monarch-alert", "Please enter a token.", "error"); return; }
-  clearCardAlert("monarch-alert");
-  chrome.storage.sync.set({ monarchToken: token }, () => {
-    showCardAlert("monarch-alert", "✓ Token saved.", "success");
-    testMonarchConnection(token);
-    setTimeout(() => clearCardAlert("monarch-alert"), 3000);
-  });
-});
 $("test-monarch-btn").addEventListener("click", async () => {
   const btn = $("test-monarch-btn");
-  const token = $("monarch-token").value.trim();
   setLoading(btn, true, "Testing");
   clearCardAlert("monarch-alert");
-  await testMonarchConnection(token || undefined);
+  await testMonarchConnection();
   setLoading(btn, false, "🔌 Test Connection");
 });
 
@@ -170,17 +155,14 @@ $("preview-btn").addEventListener("click", async () => {
   clearStatus("status-bar");
   setLoading(btn, true, "👁 Loading");
 
-  const { monarchToken, plApiKey, accountMapping } = await getStoredCredentials();
+  const { plApiKey, accountMapping } = await getStoredCredentials();
   if (!plApiKey || !accountMapping?.length) {
     showStatus("status-bar", "Complete Settings and Account Mapping first.", "error");
     setLoading(btn, false, "👁 Load Preview");
     return;
   }
 
-  let mResult = await chrome.runtime.sendMessage({ type: "FETCH_MONARCH_ACCOUNTS" });
-  if (!mResult.success && monarchToken) {
-    mResult = await chrome.runtime.sendMessage({ type: "FETCH_MONARCH_ACCOUNTS", token: monarchToken });
-  }
+  const mResult = await chrome.runtime.sendMessage({ type: "FETCH_MONARCH_ACCOUNTS" });
   if (!mResult.success) {
     showStatus("status-bar", `Monarch: ${mResult.error}`, "error");
     setLoading(btn, false, "👁 Load Preview");
@@ -359,5 +341,5 @@ function callProjectionLab(action, payload) {
 
 // ─── Utils ────────────────────────────────────────────────────────────────────
 function getStoredCredentials() {
-  return new Promise(resolve => chrome.storage.sync.get(["monarchToken", "plApiKey", "accountMapping"], resolve));
+  return new Promise(resolve => chrome.storage.sync.get(["plApiKey", "accountMapping"], resolve));
 }

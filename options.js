@@ -45,14 +45,7 @@ async function loadMonarch() {
   const btn = $("load-monarch-btn");
   btn.disabled = true; btn.innerHTML = '<span class="spinner">⏳</span> Loading…';
 
-  // Try cookie-based auth first, fall back to saved token
-  let result = await chrome.runtime.sendMessage({ type: "FETCH_MONARCH_ACCOUNTS" });
-  if (!result.success) {
-    const { monarchToken } = await getStorage(["monarchToken"]);
-    if (monarchToken) {
-      result = await chrome.runtime.sendMessage({ type: "FETCH_MONARCH_ACCOUNTS", token: monarchToken });
-    }
-  }
+  const result = await chrome.runtime.sendMessage({ type: "FETCH_MONARCH_ACCOUNTS" });
 
   btn.disabled = false; btn.innerHTML = '<span style="color:#a855f7">◉</span> Load Monarch';
   if (!result.success) { showStatus("Monarch: " + (result.error || "Log into app.monarch.com in this browser."), "error"); return; }
