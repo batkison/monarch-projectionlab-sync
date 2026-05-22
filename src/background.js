@@ -1,37 +1,11 @@
 // background.js
 
-const MONARCH_API = "https://api.monarch.com/graphql";
-
-const GET_ACCOUNTS_BODY = JSON.stringify({
-  operationName: "GetAccounts",
-  query: `
-    query GetAccounts {
-      accounts {
-        id
-        displayName
-        currentBalance
-        displayBalance
-        signedBalance
-        isHidden
-        hideFromList
-        deactivatedAt
-        deletedAt
-        includeInNetWorth
-        institution { name }
-        subtype { name display }
-        type { name display }
-      }
-    }
-  `,
-  variables: {},
-});
-
 const _monarchPending = {};
 const _plPending = {};
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "FETCH_MONARCH_ACCOUNTS" || message.type === "VALIDATE_MONARCH_TOKEN") {
-    fetchMonarchAccounts(message.token)
+    fetchMonarchAccounts()
       .then(sendResponse)
       .catch(err => sendResponse({ success: false, error: err.message }));
     return true;
@@ -131,62 +105,13 @@ async function fetchMonarchAccountsViaBridge() {
   });
 }
 
-async function fetchMonarchAccountsWithToken(token) {
-  const headers = {
-    "Content-Type": "application/json",
-    "client-platform": "web",
-  };
-  headers["Authorization"] = `Token ${token}`;
-
-  let res;
-  try {
-    res = await fetch(MONARCH_API, {
-      method: "POST",
-      headers,
-      body: GET_ACCOUNTS_BODY,
-    });
-  } catch (err) {
-    return { success: false, error: "Network error reaching Monarch API." };
-  }
-
-  const text = await res.text();
-  if (!res.ok) return { success: false, error: `HTTP ${res.status}: ${text.slice(0, 300)}` };
-
-  let data;
-  try { data = JSON.parse(text); } catch { return { success: false, error: "Invalid response from Monarch API." }; }
-  if (data.errors) return { success: false, error: data.errors.map(e => e.message).join("; ") };
-
-  const raw = data?.data?.accounts;
-  if (!Array.isArray(raw)) return { success: false, error: "Unexpected response: " + JSON.stringify(data).slice(0, 200) };
-
-  const accounts = raw
-    .filter(a => !a.isHidden && !a.hideFromList && !a.deactivatedAt && !a.deletedAt)
-    .map(a => ({
-      id: a.id,
-      name: a.displayName,
-      balance: a.displayBalance ?? a.currentBalance ?? a.signedBalance ?? 0,
-      type: a.type?.display ?? a.type?.name ?? "",
-      subtype: a.subtype?.display ?? a.subtype?.name ?? "",
-      institution: a.institution?.name ?? "",
-      includeInNetWorth: a.includeInNetWorth ?? true,
-    }));
-
-  return { success: true, accounts };
-}
-
-async function fetchMonarchAccounts(token) {
-  // If a manual token is provided, use it directly (no tab needed)
-  if (token) {
-    return fetchMonarchAccountsWithToken(token);
-  }
-
-  // Otherwise, try the bridge approach (uses logged-in session via the Monarch tab)
+async function fetchMonarchAccounts() {
   const result = await fetchMonarchAccountsViaBridge();
 
   if (!result.success && result.error === "NO_MONARCH_TAB") {
     return {
       success: false,
-      error: "No Monarch tab found. Please open app.monarch.com and log in, or provide a session token in Settings.",
+      error: "No Monarch tab found. Please open app.monarch.com and log in.",
     };
   }
 
