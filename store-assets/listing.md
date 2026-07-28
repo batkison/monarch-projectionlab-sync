@@ -40,10 +40,11 @@ The popup shows a full preview before anything changes: current ProjectionLab ba
 FEATURES
 
 • One-click sync — updating every balance takes seconds
-• Preview before syncing — see old vs. new balances with change amounts first
+• House + mortgage stay in sync — a ProjectionLab asset with an attached loan (house + mortgage, car + auto loan) maps as two separate fields, so Monarch's home value and mortgage balance each sync to the right place and your equity stays correct
+• Preview before syncing — see old vs. new balances with change amounts first, and exactly which ProjectionLab account and field each balance goes to
 • Selective sync — checkboxes per account
 • Auto-link by name — plus a full mapping editor with search, sort, and type filters
-• Supports savings, investment accounts, assets, and debts (including real estate and auto loans)
+• Supports savings, investment accounts, assets, and debts
 • Cross-device settings — your mappings follow your Chrome profile
 • Works with Chrome, Arc, Brave, and Edge
 

@@ -17,6 +17,7 @@ If you track spending in Monarch and plan your financial future in ProjectionLab
 ## Features
 
 - ⚡ **One-click sync** — once set up, updating every balance takes seconds
+- 🏠 **Dual-field assets** — a ProjectionLab asset with an attached loan (house + mortgage, car + auto loan) maps as two separate fields, so Monarch's home value and mortgage balance sync independently and your equity stays correct
 - 👁 **Preview before syncing** — see old vs. new balances with change amounts before committing anything
 - ☑️ **Selective sync** — checkboxes per account; sync only what you want
 - 🔗 **Auto-link by name** — accounts with matching names are linked automatically; a full mapping editor handles the rest (search, sort, filter by type)

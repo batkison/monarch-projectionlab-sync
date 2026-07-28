@@ -1,58 +1,74 @@
 {
   "manifest_version": 3,
   "name": "Monarch Money → ProjectionLab Sync",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Sync Monarch Money account balances into ProjectionLab with one click. Preview every change first. No servers, no tracking.",
-
-  "permissions": ["storage", "scripting", "tabs"],
-
+  "permissions": [
+    "storage",
+    "scripting",
+    "tabs"
+  ],
   "host_permissions": [
     "https://app.monarch.com/*",
     "https://api.monarch.com/*",
     "https://app.projectionlab.com/*",
     "https://ea.projectionlab.com/*"
   ],
-
   "options_page": "options.html",
-
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16":  "icons/icon16.png",
-      "48":  "icons/icon48.png",
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
   },
-
-  "background": { "service_worker": "src/background.js" },
-
+  "background": {
+    "service_worker": "src/background.js"
+  },
   "content_scripts": [
     {
-      "matches": ["https://app.projectionlab.com/*", "https://ea.projectionlab.com/*"],
-      "js": ["src/pl-bridge.js"],
+      "matches": [
+        "https://app.projectionlab.com/*",
+        "https://ea.projectionlab.com/*"
+      ],
+      "js": [
+        "src/pl-bridge.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://app.monarch.com/*"],
-      "js": ["src/monarch-bridge.js"],
+      "matches": [
+        "https://app.monarch.com/*"
+      ],
+      "js": [
+        "src/monarch-bridge.js"
+      ],
       "run_at": "document_idle"
     }
   ],
-
   "web_accessible_resources": [
     {
-      "resources": ["src/pl-page.js"],
-      "matches": ["https://app.projectionlab.com/*", "https://ea.projectionlab.com/*"]
+      "resources": [
+        "src/pl-page.js"
+      ],
+      "matches": [
+        "https://app.projectionlab.com/*",
+        "https://ea.projectionlab.com/*"
+      ]
     },
     {
-      "resources": ["src/monarch-page.js"],
-      "matches": ["https://app.monarch.com/*"]
+      "resources": [
+        "src/monarch-page.js"
+      ],
+      "matches": [
+        "https://app.monarch.com/*"
+      ]
     }
   ],
-
   "icons": {
-    "16":  "icons/icon16.png",
-    "48":  "icons/icon48.png",
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   }
 }

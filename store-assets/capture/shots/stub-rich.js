@@ -6,6 +6,7 @@ const MOCK_STORE = {
     { monarchId: "m2", plId: "p2", plField: "balance" },
     { monarchId: "m3", plId: "p3", plField: "balance" },
     { monarchId: "m8", plId: "p8", plField: "balance" },
+    { monarchId: "m7", plId: "p6", plField: "balance" },
   ],
   assetHasLoan: {},
   lastSync: "2026-07-20T15:42:15.000Z",
@@ -18,14 +19,14 @@ const MOCK_MONARCH = [
   { id: "m4", name: "Brokerage",          balance: 122890,  type: "investment", subtype: "brokerage",  institution: "Vanguard" },
   { id: "m8", name: "401(k)",             balance: 156780,  type: "investment", subtype: "401k",       institution: "Fidelity" },
   { id: "m5", name: "Chase Sapphire",     balance: -2340,   type: "credit",     subtype: "credit card", institution: "Chase" },
-  { id: "m6", name: "Home",               balance: 485000,  type: "property",   subtype: "real estate" },
+  { id: "m6", name: "Home (Zillow)",      balance: 485000,  type: "property",   subtype: "real estate" },
   { id: "m7", name: "Mortgage",           balance: -312450, type: "loan",       subtype: "mortgage" },
   { id: "m9", name: "Subaru Outback",     balance: 18500,   type: "property",   subtype: "vehicle" },
 ];
 const MOCK_PL_TODAY = {
   savingsAccounts:    [ { id: "p1", name: "Checking", balance: 12450 }, { id: "p2", name: "Emergency Fund", balance: 45200 } ],
   investmentAccounts: [ { id: "p3", name: "Roth IRA", balance: 78340 }, { id: "p4", name: "Brokerage", balance: 125600 }, { id: "p8", name: "401(k)", balance: 152300 } ],
-  assets: [ { id: "p6", name: "Home", amount: 470000, balance: -315000 }, { id: "p9", name: "Car", amount: 19000 } ],
+  assets: [ { id: "p6", name: "House", amount: 470000, balance: -315000 }, { id: "p9", name: "Car", amount: 19000 } ],
   debts: [ { id: "p5", name: "Credit Card", balance: -2340 } ],
 };
 window.chrome = {

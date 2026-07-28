@@ -11,6 +11,8 @@ const mockStorage = {
       { monarchId: "m3", plId: "p3" },
       { monarchId: "m4", plId: "p4" },
       { monarchId: "m5", plId: "p5" },
+      { monarchId: "m6", plId: "p6", plField: "amount" },
+      { monarchId: "m7", plId: "p6", plField: "balance" },
     ],
     lastSync: "2026-07-20T15:42:15.000Z",
     syncCount: 0,
@@ -26,11 +28,13 @@ const monarchAccounts = [
   { id: "m3", name: "Roth IRA",           balance: 81205 },
   { id: "m4", name: "Brokerage Account",  balance: 122890 },
   { id: "m5", name: "Credit Card",        balance: -2340 },
+  { id: "m6", name: "Home (Zillow)",      balance: 485000 },
+  { id: "m7", name: "Mortgage",           balance: -312450 },
 ];
 const plToday = {
   savingsAccounts:    [ { id: "p1", name: "Checking", balance: 12450 }, { id: "p2", name: "Savings", balance: 45200 } ],
   investmentAccounts: [ { id: "p3", name: "Roth IRA", balance: 78340 }, { id: "p4", name: "Brokerage", balance: 125600 } ],
-  assets: [],
+  assets: [ { id: "p6", name: "House", amount: 470000, balance: -315000 } ],
   debts: [ { id: "p5", name: "Credit Card", balance: -2340 } ],
 };
 

@@ -294,10 +294,13 @@ async function loadPreview() {
     const plField = m.plField ?? "balance";
     const pAccBalance = pAcc[plField] ?? 0;
     const hasChanged = Math.abs(mAcc.balance - pAccBalance) >= 0.01;
+    // Dual-field asset (e.g. house + mortgage): label which field this maps to
+    const isDual = pAcc.amount != null && pAcc.balance != null;
     previewData.push({
       monarchId: mAcc.id,
       plId: pAcc.id,
       plField,
+      fieldLabel: isDual ? (plField === "amount" ? "value" : "loan") : "",
       name: mAcc.name,
       plName: pAcc.name,
       oldBalance: pAccBalance,
@@ -342,9 +345,10 @@ function renderPreview() {
     const diffStr = diff === 0 ? "" : ` <span style="color:${diff > 0 ? "#4ade80" : "#f87171"}">${diff > 0 ? "+" : ""}${formatBalance(diff)}</span>`;
     const checked = row.selected ? "checked" : "";
     const rowCls = !row.selected ? "row-disabled" : "";
+    const target = `→ ${escHtml(row.plName)}${row.fieldLabel ? ` · ${row.fieldLabel}` : ""}`;
     return `<tr class="${rowCls}" data-row="${realIdx}">
       <td class="cb-cell"><input type="checkbox" class="sync-cb" data-idx="${realIdx}" ${checked} /></td>
-      <td>${escHtml(row.name)}</td>
+      <td>${escHtml(row.name)}<div class="acct-target">${target}</div></td>
       <td class="balance-old">${formatBalance(row.oldBalance)}</td>
       <td class="${diff === 0 ? "balance-same" : "balance-new"}">${formatBalance(row.newBalance)}${diffStr}</td>
     </tr>`;
