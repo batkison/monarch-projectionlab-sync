@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Monarch → ProjectionLab Sync",
-  "version": "1.3.3",
-  "description": "Sync account balances from Monarch Money into ProjectionLab with one click.",
+  "name": "Monarch Money → ProjectionLab Sync",
+  "version": "1.4.0",
+  "description": "Sync Monarch Money account balances into ProjectionLab with one click. Preview every change first. No servers, no tracking.",
 
   "permissions": ["storage", "scripting", "tabs"],
 

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1400px; height: 560px; overflow: hidden; }
+body {
+  background:
+    radial-gradient(700px 500px at 8% -15%, rgba(124,58,237,.28), transparent 65%),
+    radial-gradient(700px 500px at 95% 120%, rgba(14,165,233,.26), transparent 65%),
+    linear-gradient(160deg, #0b1120 0%, #131c33 100%);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #f1f5f9;
+  display: flex; align-items: center; gap: 40px;
+  padding: 0 70px;
+}
+.left { flex: 1; min-width: 0; }
+.lockup { display: flex; align-items: center; gap: 10px; margin-bottom: 26px; }
+.pill {
+  width: 46px; height: 46px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 19px; font-weight: 800; color: #fff;
+}
+.pill-m  { background: linear-gradient(135deg, #7c3aed, #a855f7); box-shadow: 0 0 20px rgba(124,58,237,.5); }
+.pill-pl { background: linear-gradient(135deg, #0284c7, #38bdf8); box-shadow: 0 0 20px rgba(14,165,233,.5); }
+.arrow svg { width: 24px; height: 24px; stroke: #94a3b8; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+h1 { font-size: 44px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 18px; }
+h1 .m  { color: #c4b5fd; }
+h1 .pl { color: #7dd3fc; }
+.sub { font-size: 20px; color: #94a3b8; line-height: 1.5; margin-bottom: 22px; }
+.badges { display: flex; gap: 10px; flex-wrap: wrap; }
+.badge {
+  font-size: 14px; font-weight: 600; color: #e2e8f0;
+  background: rgba(148,163,184,.12); border: 1px solid rgba(148,163,184,.25);
+  border-radius: 999px; padding: 7px 14px;
+}
+.right { flex-shrink: 0; }
+.device {
+  border-radius: 14px; overflow: hidden;
+  box-shadow: 0 30px 80px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.08);
+  transform: scale(1.02); transform-origin: center;
+  background: #0f172a;
+}
+.device iframe { display: block; border: none; width: 560px; height: 420px; background: #0f172a; }
+</style></head>
+<body>
+  <div class="left">
+    <div class="lockup">
+      <div class="pill pill-m">M</div>
+      <div class="arrow"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg></div>
+      <div class="pill pill-pl">PL</div>
+    </div>
+    <h1><span class="m">Monarch Money</span> balances,<br>synced into <span class="pl">ProjectionLab</span></h1>
+    <p class="sub">Stop retyping balances into your financial plan.<br>Preview every change, then sync in one click.</p>
+    <div class="badges">
+      <span class="badge">Preview before sync</span>
+      <span class="badge">Auto-link by name</span>
+      <span class="badge">No servers · open source</span>
+    </div>
+  </div>
+  <div class="right">
+    <div class="device"><iframe src="../index.html" scrolling="no"></iframe></div>
+  </div>
+</body></html>

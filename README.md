@@ -1,93 +1,96 @@
-# Monarch → ProjectionLab Sync
+# Monarch Money → ProjectionLab Sync
 
-A Chrome extension that syncs your account balances from **Monarch Money** into **ProjectionLab** with a single click.
+A Chrome extension that syncs your account balances from **[Monarch Money](https://www.monarchmoney.com/)** into **[ProjectionLab](https://projectionlab.com/)** with one click — no more retyping balances by hand every month.
+
+**[➡ Install from the Chrome Web Store](https://chromewebstore.google.com/detail/mbmlgebglmgfiifpjmemfhhmpgamfcba)**
 
 ---
+
+## Why
+
+If you track spending in Monarch and plan your financial future in ProjectionLab, keeping ProjectionLab's current balances up to date is a manual chore. This extension automates it:
+
+1. Reads current balances from your Monarch session
+2. Shows you exactly what will change (old → new, with diffs)
+3. Pushes the balances you approve into ProjectionLab via its official Plugin API
 
 ## Features
 
-- 🔐 **Secure** — credentials stored locally in Chrome storage, never sent anywhere except directly to Monarch/ProjectionLab
-- 👁 **Preview before syncing** — see old vs new balances with change amounts before committing
-- 🗺 **Flexible mapping** — map any Monarch account to any ProjectionLab account
-- ⚡ **One-click sync** — once set up, syncing takes seconds
-- 🕐 **Last-synced timestamp** — always know when data was last updated
+- ⚡ **One-click sync** — once set up, updating every balance takes seconds
+- 👁 **Preview before syncing** — see old vs. new balances with change amounts before committing anything
+- ☑️ **Selective sync** — checkboxes per account; sync only what you want
+- 🔗 **Auto-link by name** — accounts with matching names are linked automatically; a full mapping editor handles the rest (search, sort, filter by type)
+- 🔄 **Cross-device settings** — mappings and settings sync via your Chrome profile
+- 🔐 **Private by design** — no servers, no analytics, no data collection; the extension talks only to Monarch and ProjectionLab directly (see [Privacy](#privacy--security))
 
----
+## Setup (one-time, ~2 minutes)
 
-## Installation (Chrome / Arc / Brave / Edge)
+### 1. Log in to Monarch Money
 
-Since this is not on the Chrome Web Store, you install it as an **unpacked extension**:
+Open [app.monarch.com](https://app.monarch.com) in this browser and log in. That's it — the extension reads balances through your active session. No API token needed.
 
-1. Download and unzip this folder somewhere permanent (e.g. `~/Documents/monarch-pl-sync`)
-2. Open Chrome and go to `chrome://extensions`
-3. Toggle **Developer mode** on (top-right)
-4. Click **Load unpacked**
-5. Select the `monarch-pl-sync` folder
-6. The extension icon appears in your toolbar — pin it for easy access
-
----
-
-## Setup (one-time)
-
-### Step 1 — Get your Monarch Money API token
-
-1. Log into [Monarch Money](https://app.monarch.com)
-2. Go to **Settings → Developer → API**
-3. Copy your API token
-
-> If you use Google to log in, you'll need to set a password first at **Settings → Security**.
-
-### Step 2 — Get your ProjectionLab Plugin API key
+### 2. Get your ProjectionLab Plugin API key
 
 1. Log into [ProjectionLab](https://app.projectionlab.com)
 2. Go to **Account Settings → Plugins**
-3. Toggle **Enable Plugins** on
-4. Copy the **Plugin API Key**
+3. Toggle **Enable Plugins** on and copy the **Plugin API Key**
+4. Paste it in the extension's **Settings** tab and click **Save**
 
-### Step 3 — Save credentials in the extension
+### 3. Map your accounts
 
-1. Click the extension icon → **Settings** tab
-2. Paste your Monarch token and ProjectionLab API key
-3. Click **Save**
-4. Click **Test Connection** to verify both work
+1. In the extension, open **Account Mapping**
+2. Click **Load Both**, then **Auto-Link by Name** (or link accounts manually)
+3. Adjust any remaining pairs and save
 
-### Step 4 — Map your accounts
-
-1. Open **app.projectionlab.com** in a browser tab (the extension needs this tab open to talk to ProjectionLab)
-2. In the extension → **Account Mapping** tab
-3. Click **Load Accounts** — this fetches all accounts from both services
-4. For each account you want to sync, select the matching Monarch → ProjectionLab pair
-5. Click **Save Mapping**
-
----
+The popup's Sync tab shows a live checklist of these steps until setup is complete.
 
 ## Syncing
 
-1. Make sure **app.projectionlab.com** is open in a tab
-2. Click the extension icon
-3. Click **Load Preview** to see what will change
-4. Click **Sync Now** to push balances to ProjectionLab
-
----
+1. Keep **app.projectionlab.com** open in a tab (the extension talks to ProjectionLab through its Plugin API on that page)
+2. Click the extension icon — the balance preview loads automatically
+3. Review the changes, untick anything you don't want, and click **Sync Selected**
 
 ## How it works
 
-- **Monarch** is accessed via its unofficial but widely-used GraphQL API, using a Bearer token that you obtain from Monarch's developer settings
-- **ProjectionLab** is accessed via its official [Plugin API](https://app.projectionlab.com/docs/module-PluginAPI.html) (`window.projectionlabPluginAPI`) — the extension injects a small bridge script into the PL tab to call this API on your behalf
-- Your credentials are stored locally in Chrome's encrypted extension storage and are never transmitted to any third party
+- **Monarch** balances are read via Monarch's GraphQL API using your existing browser session — the extension never sees or stores your Monarch password
+- **ProjectionLab** is updated via its official [Plugin API](https://app.projectionlab.com/docs/module-PluginAPI.html) (`window.projectionlabPluginAPI`); the extension injects a small bridge script into your ProjectionLab tab to call it
+- Everything runs locally in your browser — there is no backend
 
----
+## Privacy & security
+
+- Your ProjectionLab API key and account mappings are stored in Chrome extension storage (synced across your own Chrome profile), nowhere else
+- No data is ever sent to any third party — the only network traffic is between your browser and Monarch/ProjectionLab themselves
+- No analytics, tracking, or telemetry of any kind
+- The entire source code is in this repository — audit it yourself
+
+See the full [privacy policy](store-assets/privacy-policy.md).
+
+## Installing from source (developer mode)
+
+1. Clone or download this repository
+2. Open `chrome://extensions` and toggle **Developer mode** on
+3. Click **Load unpacked** and select the repository folder
+
+Works in Chrome, Arc, Brave, Edge, and other Chromium browsers.
 
 ## Troubleshooting
 
+**"No Monarch tab found" / Monarch not connected**
+Open `app.monarch.com` in a tab and log in, then click Test Connection. If it still fails, refresh the Monarch tab.
+
 **"No ProjectionLab tab found"**
-Open `app.projectionlab.com` in a browser tab before syncing.
+Open `app.projectionlab.com` in a tab before syncing — the popup offers an *Open ProjectionLab* button when this happens.
 
-**"Plugin API not found"**
-Make sure you've enabled Plugins in ProjectionLab's Account Settings.
+**"Plugin API not found" / ProjectionLab did not respond**
+Make sure **Enable Plugins** is turned on in ProjectionLab's Account Settings, then refresh the ProjectionLab tab.
 
-**"Invalid Monarch token"**
-Re-copy the token from Monarch's developer settings. Tokens can expire or be regenerated.
+**Accounts not showing in the mapping editor**
+Click **Load Both** to fetch fresh account lists from both services. Both tabs (Monarch and ProjectionLab) need to be open.
 
-**Accounts not showing in mapping**
-Click "Load Accounts" — this needs to fetch from both services fresh. Make sure the PL tab is open.
+## Support
+
+If this extension saves you time, consider [buying me a coffee](https://account.venmo.com/u/Brent-Atkison) ☕ — and a [rating on the Chrome Web Store](https://chromewebstore.google.com/detail/mbmlgebglmgfiifpjmemfhhmpgamfcba/reviews) helps other Monarch + ProjectionLab users find it.
+
+## License
+
+[MIT](LICENSE)

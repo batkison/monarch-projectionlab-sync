@@ -1,16 +1,58 @@
 // popup.js
 
+const STORE_REVIEW_URL = "https://chromewebstore.google.com/detail/mbmlgebglmgfiifpjmemfhhmpgamfcba/reviews";
+const RATE_PROMPT_MIN_SYNCS = 3;
+
 // ─── State ───────────────────────────────────────────────────────────────────
 let previewData = [];
 let monarchConnected = false;
+let autoPreviewDone = false;
+let syncInProgress = false;
+
+// ─── Icons ───────────────────────────────────────────────────────────────────
+const svg = (paths) => `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${paths}</svg>`;
+const ICONS = {
+  eye:     svg('<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'),
+  zap:     svg('<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>'),
+  test:    svg('<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>'),
+  save:    svg('<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>'),
+  check:   svg('<polyline points="20 6 9 17 4 12"/>'),
+  x:       svg('<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'),
+  spinner: `<svg class="icon icon-spin" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.22-8.56"/></svg>`,
+};
 
 // ─── DOM helpers ─────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
-function showStatus(barId, message, type = "info") {
+function setBtn(btn, icon, label) {
+  btn.innerHTML = `${ICONS[icon] ?? ""}<span>${label}</span>`;
+}
+function setLoading(btn, loading, label) {
+  if (loading) {
+    btn.dataset.orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `${ICONS.spinner}<span>${label}…</span>`;
+  } else {
+    btn.disabled = false;
+    if (btn.dataset.orig) { btn.innerHTML = btn.dataset.orig; delete btn.dataset.orig; }
+  }
+}
+
+function showStatus(barId, message, type = "info", action = null) {
   const el = $(barId);
   el.className = "status-bar " + type;
-  el.textContent = message;
+  el.textContent = "";
+  const msg = document.createElement("span");
+  msg.className = "status-msg";
+  msg.textContent = message;
+  el.appendChild(msg);
+  if (action) {
+    const btn = document.createElement("button");
+    btn.className = "btn btn-ghost btn-sm";
+    btn.textContent = action.label;
+    btn.addEventListener("click", action.onClick);
+    el.appendChild(btn);
+  }
 }
 function clearStatus(barId) {
   const el = $(barId);
@@ -38,16 +80,15 @@ function setSavedStatus(id, saved) {
   el.className = "settings-card-status " + (saved ? "saved" : "unsaved");
   el.textContent = saved ? "✓ saved" : "not saved";
 }
-function setLoading(btn, loading, text) {
-  btn.disabled = loading;
-  btn.innerHTML = loading ? `<span class="spinner">⏳</span> ${text}…` : text;
-}
 function formatBalance(n) {
   if (n == null) return "—";
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 }
 function escHtml(str) {
   return String(str ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function pluralAccounts(n) {
+  return `${n} account${n === 1 ? "" : "s"}`;
 }
 function updateLastSyncLabel() {
   chrome.storage.sync.get(["lastSync"], ({ lastSync }) => {
@@ -64,21 +105,51 @@ function updateMappingSummary() {
   });
 }
 
-// ─── Tabs ─────────────────────────────────────────────────────────────────────
-document.querySelectorAll(".tab").forEach(tab => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
-    tab.classList.add("active");
-    $("tab-" + tab.dataset.tab).classList.add("active");
-    if (tab.dataset.tab === "mapping") updateMappingSummary();
+// ─── Default button contents ─────────────────────────────────────────────────
+setBtn($("preview-btn"), "eye", "Refresh Preview");
+setBtn($("sync-btn"), "zap", "Sync Selected");
+setBtn($("test-monarch-btn"), "test", "Test Connection");
+setBtn($("test-pl-btn"), "test", "Test");
+setBtn($("save-pl-btn"), "save", "Save");
+
+// ─── Tabs (keyboard-accessible) ──────────────────────────────────────────────
+const tabButtons = [...document.querySelectorAll(".tab")];
+function selectTab(name) {
+  tabButtons.forEach(t => {
+    const active = t.dataset.tab === name;
+    t.classList.toggle("active", active);
+    t.setAttribute("aria-selected", String(active));
+  });
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+  $("tab-" + name).classList.add("active");
+  if (name === "mapping") updateMappingSummary();
+}
+tabButtons.forEach((tab, i) => {
+  tab.addEventListener("click", () => selectTab(tab.dataset.tab));
+  tab.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    e.preventDefault();
+    const next = tabButtons[(i + (e.key === "ArrowRight" ? 1 : tabButtons.length - 1)) % tabButtons.length];
+    next.focus();
+    selectTab(next.dataset.tab);
   });
 });
-$("open-settings").addEventListener("click", () => document.querySelector('[data-tab="settings"]').click());
-$("go-settings-btn")?.addEventListener("click", () => document.querySelector('[data-tab="settings"]').click());
+$("open-settings").addEventListener("click", () => selectTab("settings"));
 
 // ─── Mapping tab — open options page ─────────────────────────────────────────
 $("open-mapping-btn").addEventListener("click", () => chrome.runtime.openOptionsPage());
+
+// ─── Setup checklist ─────────────────────────────────────────────────────────
+function setStepDone(stepId, done) {
+  const step = $(stepId);
+  step.classList.toggle("done", done);
+  const status = step.querySelector(".step-status");
+  if (done) status.innerHTML = ICONS.check;
+  else status.textContent = { "step-monarch": "1", "step-plkey": "2", "step-mapping": "3" }[stepId];
+}
+$("step-monarch-btn").addEventListener("click", () => chrome.tabs.create({ url: "https://app.monarch.com" }));
+$("step-plkey-btn").addEventListener("click", () => { selectTab("settings"); $("pl-api-key").focus(); });
+$("step-mapping-btn").addEventListener("click", () => chrome.runtime.openOptionsPage());
 
 // ─── Settings — load & auto-detect Monarch ──────────────────────────────────
 chrome.storage.sync.get(["plApiKey"], ({ plApiKey }) => {
@@ -89,6 +160,7 @@ chrome.storage.sync.get(["plApiKey"], ({ plApiKey }) => {
   checkSetupComplete();
   updateLastSyncLabel();
   updateMappingSummary();
+  maybeShowRatePrompt();
 });
 $("pl-api-key").addEventListener("input", () => setSavedStatus("pl-saved-status", false));
 
@@ -112,7 +184,7 @@ $("test-monarch-btn").addEventListener("click", async () => {
   setLoading(btn, true, "Testing");
   clearCardAlert("monarch-alert");
   await testMonarchConnection();
-  setLoading(btn, false, "🔌 Test Connection");
+  setLoading(btn, false);
 });
 
 // ─── Settings — ProjectionLab ────────────────────────────────────────────────
@@ -134,7 +206,7 @@ $("test-pl-btn").addEventListener("click", async () => {
   setLoading(btn, true, "Testing");
   clearCardAlert("pl-alert");
   const result = await callProjectionLab("exportData", { key });
-  setLoading(btn, false, "🔌 Test");
+  setLoading(btn, false);
   if (result.success) showCardAlert("pl-alert", "✓ Connected to ProjectionLab!", "success");
   else if (result.error?.includes("No ProjectionLab")) showCardAlert("pl-alert", "Open app.projectionlab.com or ea.projectionlab.com in a tab first.", "error");
   else showCardAlert("pl-alert", result.error || "Connection failed.", "error");
@@ -143,36 +215,66 @@ $("test-pl-btn").addEventListener("click", async () => {
 // ─── Sync tab ─────────────────────────────────────────────────────────────────
 function checkSetupComplete() {
   chrome.storage.sync.get(["plApiKey", "accountMapping"], (data) => {
-    const ready = monarchConnected && data.plApiKey && data.accountMapping?.length > 0;
+    const hasKey = Boolean(data.plApiKey);
+    const hasMapping = data.accountMapping?.length > 0;
+    const ready = monarchConnected && hasKey && hasMapping;
+
+    setStepDone("step-monarch", monarchConnected);
+    setStepDone("step-plkey", hasKey);
+    setStepDone("step-mapping", hasMapping);
+
     $("setup-required").style.display = ready ? "none" : "block";
     $("sync-ready").style.display     = ready ? "block" : "none";
+
+    if (ready && !autoPreviewDone) {
+      autoPreviewDone = true;
+      loadPreview();
+    }
   });
 }
 
+// ─── "No PL tab" helper ──────────────────────────────────────────────────────
+function plErrorStatus(prefix, error) {
+  const message = `${prefix}: ${error || "Open app.projectionlab.com in a tab."}`;
+  if (error?.includes("No ProjectionLab")) {
+    showStatus("status-bar", "ProjectionLab isn't open in any tab. Open it, then come back here.", "warning", {
+      label: "Open ProjectionLab",
+      onClick: () => chrome.tabs.create({ url: "https://app.projectionlab.com" }),
+    });
+  } else {
+    showStatus("status-bar", message, "error");
+  }
+}
+
 // ─── Preview with checkboxes ─────────────────────────────────────────────────
-$("preview-btn").addEventListener("click", async () => {
+async function loadPreview() {
   const btn = $("preview-btn");
   clearStatus("status-bar");
-  setLoading(btn, true, "👁 Loading");
+  setLoading(btn, true, "Loading");
+
+  const previewUnavailable = () => {
+    $("preview-area").innerHTML = `<p class="empty-state">Preview unavailable — fix the issue above, then refresh.</p>`;
+    setLoading(btn, false);
+  };
 
   const { plApiKey, accountMapping } = await getStoredCredentials();
   if (!plApiKey || !accountMapping?.length) {
     showStatus("status-bar", "Complete Settings and Account Mapping first.", "error");
-    setLoading(btn, false, "👁 Load Preview");
+    previewUnavailable();
     return;
   }
 
   const mResult = await chrome.runtime.sendMessage({ type: "FETCH_MONARCH_ACCOUNTS" });
   if (!mResult.success) {
     showStatus("status-bar", `Monarch: ${mResult.error}`, "error");
-    setLoading(btn, false, "👁 Load Preview");
+    previewUnavailable();
     return;
   }
 
   const plResult = await callProjectionLab("exportData", { key: plApiKey });
   if (!plResult.success) {
-    showStatus("status-bar", `ProjectionLab: ${plResult.error || "Open app.projectionlab.com or ea.projectionlab.com in a tab."}`, "error");
-    setLoading(btn, false, "👁 Load Preview");
+    plErrorStatus("ProjectionLab", plResult.error);
+    previewUnavailable();
     return;
   }
 
@@ -206,21 +308,22 @@ $("preview-btn").addEventListener("click", async () => {
   }
 
   renderPreview();
-  setLoading(btn, false, "👁 Load Preview");
+  setLoading(btn, false);
   updateSyncButtonState();
   if (previewData.length === 0) showStatus("status-bar", "No matching accounts found. Check your mapping.", "warning");
-});
+}
+$("preview-btn").addEventListener("click", loadPreview);
 
 $("hide-unchanged")?.addEventListener("change", () => renderPreview());
 
+function visibleRows() {
+  const hideUnchanged = $("hide-unchanged")?.checked ?? false;
+  return hideUnchanged ? previewData.filter(r => r.hasChanged) : previewData;
+}
+
 function renderPreview() {
   const area = $("preview-area");
-  const hideUnchanged = $("hide-unchanged")?.checked ?? false;
-
-  let visible = previewData;
-  if (hideUnchanged) {
-    visible = previewData.filter(row => row.hasChanged);
-  }
+  const visible = visibleRows();
 
   if (previewData.length === 0) {
     area.innerHTML = `<p class="empty-state">No mapped accounts found.</p>`;
@@ -228,7 +331,7 @@ function renderPreview() {
   }
   if (visible.length === 0) {
     const unchangedCount = previewData.filter(r => !r.hasChanged).length;
-    area.innerHTML = `<p class="empty-state">All ${unchangedCount} account(s) are up to date — nothing to sync! ✓</p>`;
+    area.innerHTML = `<p class="empty-state">All ${pluralAccounts(unchangedCount)} up to date — nothing to sync! ✓</p>`;
     updateSyncButtonState();
     return;
   }
@@ -239,7 +342,7 @@ function renderPreview() {
     const diffStr = diff === 0 ? "" : ` <span style="color:${diff > 0 ? "#4ade80" : "#f87171"}">${diff > 0 ? "+" : ""}${formatBalance(diff)}</span>`;
     const checked = row.selected ? "checked" : "";
     const rowCls = !row.selected ? "row-disabled" : "";
-    return `<tr class="${rowCls}">
+    return `<tr class="${rowCls}" data-row="${realIdx}">
       <td class="cb-cell"><input type="checkbox" class="sync-cb" data-idx="${realIdx}" ${checked} /></td>
       <td>${escHtml(row.name)}</td>
       <td class="balance-old">${formatBalance(row.oldBalance)}</td>
@@ -269,18 +372,13 @@ function renderPreview() {
       const tr = cb.closest("tr");
       tr.classList.toggle("row-disabled", !cb.checked);
       // Update select-all state
-      const allCb = $("select-all-cb");
-      const hideUnchanged = $("hide-unchanged")?.checked ?? false;
-      const vis = hideUnchanged ? previewData.filter(r => r.hasChanged) : previewData;
-      allCb.checked = vis.every(r => r.selected);
+      $("select-all-cb").checked = visibleRows().every(r => r.selected);
     });
   });
 
   // Select-all checkbox
   $("select-all-cb")?.addEventListener("change", (e) => {
-    const hideUnchanged = $("hide-unchanged")?.checked ?? false;
-    const vis = hideUnchanged ? previewData.filter(r => r.hasChanged) : previewData;
-    for (const row of vis) row.selected = e.target.checked;
+    for (const row of visibleRows()) row.selected = e.target.checked;
     renderPreview();
     updateSyncButtonState();
   });
@@ -288,10 +386,17 @@ function renderPreview() {
 
 function updateSyncButtonState() {
   const selectedCount = previewData.filter(r => r.selected).length;
-  $("sync-btn").disabled = selectedCount === 0;
-  $("sync-btn").textContent = selectedCount > 0
-    ? `⚡ Sync Selected (${selectedCount})`
-    : "⚡ Sync Selected";
+  $("sync-btn").disabled = syncInProgress || selectedCount === 0;
+  setBtn($("sync-btn"), "zap", selectedCount > 0 ? `Sync Selected (${selectedCount})` : "Sync Selected");
+}
+
+// Per-row sync progress: swap the row's checkbox cell for a status icon
+function setRowStatus(idx, state) {
+  const tr = document.querySelector(`tr[data-row="${idx}"]`);
+  if (!tr) return;
+  const cell = tr.querySelector(".cb-cell");
+  const icons = { busy: ICONS.spinner, ok: ICONS.check, err: ICONS.x };
+  cell.innerHTML = `<span class="row-status ${state}">${icons[state]}</span>`;
 }
 
 // ─── Sync ────────────────────────────────────────────────────────────────────
@@ -305,33 +410,60 @@ $("sync-btn").addEventListener("click", async () => {
     return;
   }
 
-  setLoading(btn, true, "⚡ Syncing");
+  syncInProgress = true;
+  setLoading(btn, true, "Syncing");
   clearStatus("status-bar");
 
   let successCount = 0;
   const errors = [];
   for (const row of toSync) {
+    const idx = previewData.indexOf(row);
+    setRowStatus(idx, "busy");
     const result = await callProjectionLab("updateAccount", { key: plApiKey, accountId: row.plId, balance: row.newBalance, field: row.plField ?? "balance" });
-    if (result.success) successCount++;
-    else errors.push(`${row.name}: ${result.error}`);
+    if (result.success) { successCount++; setRowStatus(idx, "ok"); }
+    else { errors.push(`${row.name}: ${result.error}`); setRowStatus(idx, "err"); }
   }
 
-  setLoading(btn, false, "⚡ Sync Selected");
+  syncInProgress = false;
+  setLoading(btn, false);
   if (errors.length === 0) {
-    showStatus("status-bar", `✓ Synced ${successCount} account(s) successfully!`, "success");
+    showStatus("status-bar", `✓ Synced ${pluralAccounts(successCount)} successfully!`, "success");
     chrome.storage.sync.set({ lastSync: new Date().toISOString() }, updateLastSyncLabel);
     for (const row of toSync) {
       row.oldBalance = row.newBalance;
       row.hasChanged = false;
       row.selected = false;
     }
+    recordSuccessfulSync();
     renderPreview();
     updateSyncButtonState();
+  } else if (errors.length < toSync.length) {
+    showStatus("status-bar", `⚠ ${successCount} synced, ${errors.length} failed: ${errors[0]}`, "error");
   } else {
-    showStatus("status-bar", errors.length < toSync.length
-      ? `⚠️ ${successCount} synced, ${errors.length} failed: ${errors[0]}`
-      : `✗ All updates failed: ${errors[0]}`, "error");
+    plErrorStatus("All updates failed", errors[0]);
   }
+});
+
+// ─── Rate prompt ─────────────────────────────────────────────────────────────
+function maybeShowRatePrompt() {
+  chrome.storage.sync.get(["syncCount", "rateDismissed"], ({ syncCount = 0, rateDismissed }) => {
+    if (syncCount >= RATE_PROMPT_MIN_SYNCS && !rateDismissed) {
+      $("rate-prompt").classList.add("visible");
+    }
+  });
+}
+function recordSuccessfulSync() {
+  chrome.storage.sync.get(["syncCount"], ({ syncCount = 0 }) => {
+    chrome.storage.sync.set({ syncCount: syncCount + 1 }, maybeShowRatePrompt);
+  });
+}
+$("rate-btn").addEventListener("click", () => {
+  chrome.storage.sync.set({ rateDismissed: true });
+  chrome.tabs.create({ url: STORE_REVIEW_URL });
+});
+$("rate-dismiss").addEventListener("click", () => {
+  chrome.storage.sync.set({ rateDismissed: true });
+  $("rate-prompt").classList.remove("visible");
 });
 
 // ─── ProjectionLab ────────────────────────────────────────────────────────────
