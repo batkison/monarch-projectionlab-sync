@@ -2,12 +2,12 @@
 // Relays messages between background and the page-context script (pl-page.js)
 // which runs in MAIN world and can access window.projectionlabPluginAPI.
 
-if (!window.__plBridgeRegistered) {
-  window.__plBridgeRegistered = true;
+if (!window.__plBridgeRegisteredV2) {
+  window.__plBridgeRegisteredV2 = true;
 
   // Relay page postMessage → background
   window.addEventListener("message", (event) => {
-    if (event.data?._source === "monarch_pl_sync_page") {
+    if (event.source === window && event.data?._source === "monarch_pl_sync_page_v2") {
       chrome.runtime.sendMessage({ type: "PL_BRIDGE_RESPONSE", payload: event.data })
         .catch(() => {});
     }
@@ -16,7 +16,7 @@ if (!window.__plBridgeRegistered) {
   // Relay background request → page via postMessage
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === "PL_BRIDGE_REQUEST") {
-      window.postMessage({ _source: "monarch_pl_sync_ext", ...message.payload }, "*");
+      window.postMessage({ _source: "monarch_pl_sync_ext_v2", ...message.payload }, "*");
       sendResponse({ received: true });
     }
   });

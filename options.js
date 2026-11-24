@@ -4,8 +4,9 @@
 let monarchAccounts = [];
 let plAccounts      = [];
 let mapping         = [];
-let assetHasLoan    = {}; // { [plAssetId]: boolean } — persisted in chrome.storage
-let rawPlToday      = null; // cached for rebuild after loan toggle
+let assetHasLoan    = {}; // { [plAssetId]: boolean } — V4 only, persisted in chrome.storage
+let rawPl           = null; // last getAccounts result ({ apiVersion, accounts | today }), cached for rebuild after loan toggle
+let mappingIssues   = []; // links that couldn't be migrated to the V5 API automatically
 
 let selectedM  = null;
 let selectedPL = null;
@@ -52,6 +53,7 @@ async function loadMonarch() {
   monarchAccounts = result.accounts;
   buildMonarchFilterPills();
   renderMonarchList();
+  migrateIfReady();
 }
 
 async function loadPL() {
@@ -63,50 +65,40 @@ async function loadPL() {
     btn.disabled = false; btn.innerHTML = '<span style="color:#38bdf8">◉</span> Load ProjectionLab';
     return;
   }
-  const result = await chrome.runtime.sendMessage({ type: "CALL_PL", action: "exportData", payload: { key: plApiKey } });
+  const result = await chrome.runtime.sendMessage({ type: "CALL_PL", action: "getAccounts", payload: { key: plApiKey } });
   btn.disabled = false; btn.innerHTML = '<span style="color:#38bdf8">◉</span> Load ProjectionLab';
   if (!result.success) { showStatus("ProjectionLab: " + (result.error || "Open app.projectionlab.com or ea.projectionlab.com in a tab."), "error"); return; }
 
-  rawPlToday = result.result?.today || {};
-  buildPlAccounts(rawPlToday);
+  rawPl = result.result;
+  buildPlAccounts();
   buildPlFilterPills();
   renderPlList();
+  migrateIfReady();
 }
 
-function buildPlAccounts(today) {
-  const expandedAssets = [];
-  for (const a of (today.assets || [])) {
-    const hasAmount  = a.amount  != null;
-    const hasBalance = a.balance != null;
-    const isDual     = hasAmount && hasBalance;
-    const showLoan   = isDual && assetHasLoan[a.id] !== false;
+function buildPlAccounts() {
+  plAccounts = PLAccounts.buildTargets(rawPl, { assetHasLoan });
+}
 
-    // Primary/value entry
-    expandedAssets.push({
-      ...a,
-      _plType: "Asset",
-      _plField: hasAmount ? "amount" : "balance",
-      _vid: a.id + ":" + (hasAmount ? "amount" : "balance"),
-      balance: hasAmount ? a.amount : a.balance,
-      _isDual: isDual,
-      ...(showLoan ? { _fieldLabel: "value" } : {}),
-    });
-
-    // Loan entry — only shown when the asset has both fields and user hasn't disabled it
-    if (showLoan) {
-      expandedAssets.push({
-        ...a, _plType: "Asset", _plField: "balance", _vid: a.id + ":balance",
-        balance: a.balance, _fieldLabel: "loan",
-      });
-    }
+// After a ProjectionLab V5 upgrade, rewrite saved V4 links to point at V5 targets.
+// Needs both sides loaded (Monarch account types disambiguate old asset "balance" links).
+function migrateIfReady() {
+  if (!rawPl || rawPl.apiVersion !== 2) { mappingIssues = []; return; }
+  if (monarchAccounts.length === 0) return;
+  const { mapping: next, changed, issues } =
+    PLAccounts.migrateMapping(mapping, plAccounts, rawPl.apiVersion, monarchAccounts);
+  mappingIssues = issues;
+  if (changed) {
+    mapping = next;
+    saveMapping();
+    renderMonarchList(); renderPlList();
   }
-
-  plAccounts = [
-    ...(today.savingsAccounts    || []).map(a => ({...a, _plType: "Savings",    _plField: "balance", _vid: a.id + ":balance"})),
-    ...(today.investmentAccounts || []).map(a => ({...a, _plType: "Investment", _plField: "balance", _vid: a.id + ":balance"})),
-    ...expandedAssets,
-    ...(today.debts              || []).map(a => ({...a, _plType: "Debt",       _plField: "balance", _vid: a.id + ":balance"})),
-  ];
+  renderLinksTable();
+  if (issues.length) {
+    showStatus(`${issues.length} link${issues.length !== 1 ? "s" : ""} need attention after the ProjectionLab update — see Manage Links.`, "warning");
+  } else if (changed) {
+    showStatus("✓ Updated your saved links for the new ProjectionLab version.", "success");
+  }
 }
 
 // ─── Filter pills ──────────────────────────────────────────────────────────────
@@ -154,12 +146,13 @@ function buildMonarchFilterPills() {
 function buildPlFilterPills() {
   const container = $("pl-filter-pills");
   container.innerHTML = `<button class="pill active" data-filter="all">All</button>`;
-  ["Savings","Investment","Asset","Debt"].forEach(type => {
-    if (plAccounts.some(a => a._plType === type)) {
-      const btn = document.createElement("button");
-      btn.className = "pill"; btn.dataset.filter = type; btn.textContent = type;
-      container.appendChild(btn);
-    }
+  const order = ["Account", "Savings", "Investment", "Asset", "Debt"];
+  const types = [...new Set(plAccounts.map(a => a.plType))]
+    .sort((a, b) => ((order.indexOf(a) + 1) || 99) - ((order.indexOf(b) + 1) || 99));
+  types.forEach(type => {
+    const btn = document.createElement("button");
+    btn.className = "pill"; btn.dataset.filter = type; btn.textContent = type;
+    container.appendChild(btn);
   });
   container.querySelectorAll(".pill").forEach(p => {
     p.addEventListener("click", () => {
@@ -191,7 +184,7 @@ function filterMonarch(a) {
 function filterPL(a) {
   if (plSearch && !a.name.toLowerCase().includes(plSearch.toLowerCase())) return false;
   if (plFilter === "all") return true;
-  return a._plType === plFilter;
+  return a.plType === plFilter;
 }
 
 function sortAccounts(arr, sortKey) {
@@ -205,7 +198,7 @@ function sortAccounts(arr, sortKey) {
 }
 
 function mappedMIds()  { return new Set(mapping.map(m => m.monarchId)); }
-function mappedPLIds() { return new Set(mapping.map(m => m.plId + ":" + (m.plField ?? "balance"))); }
+function mappedPLIds() { return new Set(mapping.map(m => PLAccounts.vidOf(m.plId, m.plField))); }
 
 function renderMonarchList() {
   const list    = $("m-list");
@@ -262,16 +255,16 @@ function renderPlList() {
   }
 
   list.innerHTML = visible.map(a => {
-    const vid        = a._vid ?? a.id;
+    const vid        = a.vid;
     const isLinked   = mapped.has(vid);
     const isSelected = vid === selectedPL;
     const cls = ["acct-item", isLinked ? "linked" : "", isSelected ? "sel-pl" : ""].filter(Boolean).join(" ");
-    const loanToggle = (a._isDual && a._plField === "amount")
-      ? `<label class="loan-toggle"><input type="checkbox" class="loan-cb" data-asset-id="${esc(a.id)}" ${assetHasLoan[a.id] !== false ? "checked" : ""}> loan</label>`
+    const loanToggle = (a.isDual && a.plField === "amount")
+      ? `<label class="loan-toggle"><input type="checkbox" class="loan-cb" data-asset-id="${esc(a.plId)}" ${assetHasLoan[a.plId] !== false ? "checked" : ""}> loan</label>`
       : "";
     const tags = [
-      a._plType     ? `<span class="tag tag-type">${esc(a._plType)}</span>` : "",
-      a._fieldLabel ? `<span class="tag tag-field">${esc(a._fieldLabel)}</span>` : "",
+      a.plType     ? `<span class="tag tag-type">${esc(a.plType)}${a.typeLabel ? " · " + esc(a.typeLabel) : ""}</span>` : "",
+      a.fieldLabel ? `<span class="tag tag-field">${esc(a.fieldLabel)}</span>` : "",
       isLinked      ? `<span class="tag tag-linked">linked</span>` : "",
       loanToggle,
     ].filter(Boolean).join("");
@@ -300,7 +293,7 @@ function renderPlList() {
     cb.addEventListener("change", () => {
       assetHasLoan[cb.dataset.assetId] = cb.checked;
       chrome.storage.sync.set({ assetHasLoan });
-      if (rawPlToday) { buildPlAccounts(rawPlToday); renderPlList(); }
+      if (rawPl) { buildPlAccounts(); renderPlList(); }
     });
   });
 }
@@ -313,7 +306,7 @@ function updateConnector() {
   const selHint   = $("selection-hint");
 
   const mAcc  = monarchAccounts.find(a => a.id === selectedM);
-  const plAcc = plAccounts.find(a => (a._vid ?? a.id) === selectedPL);
+  const plAcc = plAccounts.find(a => a.vid === selectedPL);
 
   if (mAcc && plAcc) {
     indicator.style.display = "none";
@@ -333,10 +326,9 @@ function updateConnector() {
 $("connect-btn").addEventListener("click", () => {
   if (!selectedM || !selectedPL) return;
 
-  // Parse virtual ID into real plId and plField
-  const colonIdx = selectedPL.lastIndexOf(":");
-  const plId    = colonIdx >= 0 ? selectedPL.slice(0, colonIdx) : selectedPL;
-  const plField = colonIdx >= 0 ? selectedPL.slice(colonIdx + 1) : "balance";
+  const target = plAccounts.find(a => a.vid === selectedPL);
+  if (!target) return;
+  const { plId, plField } = target;
 
   if (mapping.some(m => m.monarchId === selectedM)) {
     showStatus("This Monarch account is already linked. Unlink it first in Manage Links.", "warning"); return;
@@ -346,6 +338,7 @@ $("connect-btn").addEventListener("click", () => {
   }
   mapping.push({ monarchId: selectedM, plId, plField });
   saveMapping();
+  mappingIssues = mappingIssues.filter(i => i.monarchId !== selectedM);
   selectedM = null; selectedPL = null;
   renderMonarchList(); renderPlList(); updateConnector();
   showStatus("✓ Link saved.", "success");
@@ -367,10 +360,10 @@ $("auto-link-btn").addEventListener("click", () => {
     const normalizedM = mAcc.name.trim().toLowerCase();
 
     for (const plAcc of plAccounts) {
-      const vid = plAcc._vid ?? plAcc.id;
+      const vid = plAcc.vid;
       if (mappedPL.has(vid)) continue;
       if (plAcc.name.trim().toLowerCase() === normalizedM) {
-        mapping.push({ monarchId: mAcc.id, plId: plAcc.id, plField: plAcc._plField ?? "balance" });
+        mapping.push({ monarchId: mAcc.id, plId: plAcc.plId, plField: plAcc.plField });
         mappedM.add(mAcc.id);
         mappedPL.add(vid);
         linked++;
@@ -403,9 +396,10 @@ function renderLinksTable() {
 
   let visible = mapping.map((m, i) => {
     const mAcc  = monarchAccounts.find(a => a.id === m.monarchId);
-    const vid   = m.plId + ":" + (m.plField ?? "balance");
-    const plAcc = plAccounts.find(a => (a._vid ?? a.id) === vid);
-    return { i, m, mAcc, plAcc,
+    const vid   = PLAccounts.vidOf(m.plId, m.plField);
+    const plAcc = plAccounts.find(a => a.vid === vid);
+    const issue = mappingIssues.find(x => x.monarchId === m.monarchId && x.plId === m.plId && x.plField === m.plField);
+    return { i, m, mAcc, plAcc, issue,
       mName:  mAcc?.name  ?? m.monarchId,
       plName: plAcc?.name ?? m.plId,
       mType:  mAcc?.type  ?? "",
@@ -454,7 +448,8 @@ function renderLinksTable() {
             <td class="link-arrow">→</td>
             <td>
               <div class="link-pl-name">${esc(r.plName)}</div>
-              ${(r.plAcc?._plType || r.plAcc?._fieldLabel) ? `<div class="link-pl-sub">${[r.plAcc?._plType, r.plAcc?._fieldLabel].filter(Boolean).map(esc).join(" · ")}</div>` : ""}
+              ${(r.plAcc?.plType || r.plAcc?.fieldLabel) ? `<div class="link-pl-sub">${[r.plAcc?.plType, r.plAcc?.fieldLabel].filter(Boolean).map(esc).join(" · ")}</div>` : ""}
+              ${r.issue ? `<div class="link-pl-sub" style="color:#fbbf24">⚠ ${esc(PLAccounts.describeIssue(r.issue.reason))} — unlink and re-link</div>` : ""}
             </td>
             <td>
               <button class="unlink-btn" data-index="${r.i}">Unlink</button>

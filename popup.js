@@ -205,9 +205,13 @@ $("test-pl-btn").addEventListener("click", async () => {
   if (!key) { showCardAlert("pl-alert", "Enter your ProjectionLab API key first.", "error"); return; }
   setLoading(btn, true, "Testing");
   clearCardAlert("pl-alert");
-  const result = await callProjectionLab("exportData", { key });
+  const result = await callProjectionLab("getAccounts", { key });
   setLoading(btn, false);
-  if (result.success) showCardAlert("pl-alert", "✓ Connected to ProjectionLab!", "success");
+  if (result.success) {
+    const v = result.result?.apiVersion === 2 ? "v5" : "v4";
+    const n = PLAccounts.buildTargets(result.result).length;
+    showCardAlert("pl-alert", `✓ Connected to ProjectionLab ${v} (${n} accounts found)`, "success");
+  }
   else if (result.error?.includes("No ProjectionLab")) showCardAlert("pl-alert", "Open app.projectionlab.com or ea.projectionlab.com in a tab first.", "error");
   else showCardAlert("pl-alert", result.error || "Connection failed.", "error");
 });
@@ -271,39 +275,39 @@ async function loadPreview() {
     return;
   }
 
-  const plResult = await callProjectionLab("exportData", { key: plApiKey });
+  const plResult = await callProjectionLab("getAccounts", { key: plApiKey });
   if (!plResult.success) {
     plErrorStatus("ProjectionLab", plResult.error);
     previewUnavailable();
     return;
   }
 
-  const today = plResult.result?.today || {};
-  const allPl = [
-    ...(today.savingsAccounts    || []),
-    ...(today.investmentAccounts || []),
-    ...(today.assets             || []),
-    ...(today.debts              || []),
-  ];
+  const plApiVersion = plResult.result?.apiVersion ?? 1;
+  // Build with every V4 loan field visible so existing links always resolve.
+  const targets = PLAccounts.buildTargets(plResult.result);
+
+  // Migrate links saved against the legacy (V4) API, persisting what resolves cleanly.
+  const { mapping, changed, issues } =
+    PLAccounts.migrateMapping(accountMapping, targets, plApiVersion, mResult.accounts);
+  if (changed) await new Promise(r => chrome.storage.sync.set({ accountMapping: mapping }, r));
 
   previewData = [];
-  for (const m of accountMapping) {
+  const unresolved = [];
+  for (const m of mapping) {
     const mAcc = mResult.accounts.find(a => a.id === m.monarchId);
-    const pAcc = allPl.find(a => a.id === m.plId);
-    if (!mAcc || !pAcc) continue;
-    const plField = m.plField ?? "balance";
-    const pAccBalance = pAcc[plField] ?? 0;
-    const hasChanged = Math.abs(mAcc.balance - pAccBalance) >= 0.01;
-    // Dual-field asset (e.g. house + mortgage): label which field this maps to
-    const isDual = pAcc.amount != null && pAcc.balance != null;
+    const target = targets.find(t => t.vid === PLAccounts.vidOf(m.plId, m.plField));
+    if (!mAcc || !target) { unresolved.push(mAcc?.name ?? m.monarchId); continue; }
+    const oldBalance = target.balance ?? 0;
+    const hasChanged = Math.abs(mAcc.balance - oldBalance) >= 0.01;
     previewData.push({
       monarchId: mAcc.id,
-      plId: pAcc.id,
-      plField,
-      fieldLabel: isDual ? (plField === "amount" ? "value" : "loan") : "",
+      plId: target.plId,
+      plField: target.plField,
+      plApiVersion,
+      fieldLabel: target.fieldLabel || "",
       name: mAcc.name,
-      plName: pAcc.name,
-      oldBalance: pAccBalance,
+      plName: target.name,
+      oldBalance,
       newBalance: mAcc.balance,
       hasChanged,
       selected: hasChanged,
@@ -313,7 +317,14 @@ async function loadPreview() {
   renderPreview();
   setLoading(btn, false);
   updateSyncButtonState();
-  if (previewData.length === 0) showStatus("status-bar", "No matching accounts found. Check your mapping.", "warning");
+  if (unresolved.length || issues.length) {
+    const n = unresolved.length;
+    showStatus("status-bar",
+      `${n} linked account${n !== 1 ? "s" : ""} couldn't be matched in ProjectionLab (${unresolved.slice(0, 3).join(", ")}${n > 3 ? "…" : ""}). Re-link ${n !== 1 ? "them" : "it"} in Account Mapping.`,
+      "warning", { label: "Open Account Mapping", onClick: () => chrome.runtime.openOptionsPage() });
+  } else if (changed) {
+    showStatus("status-bar", "✓ Updated your links for the new ProjectionLab version.", "success");
+  }
 }
 $("preview-btn").addEventListener("click", loadPreview);
 
@@ -423,7 +434,9 @@ $("sync-btn").addEventListener("click", async () => {
   for (const row of toSync) {
     const idx = previewData.indexOf(row);
     setRowStatus(idx, "busy");
-    const result = await callProjectionLab("updateAccount", { key: plApiKey, accountId: row.plId, balance: row.newBalance, field: row.plField ?? "balance" });
+    const result = await callProjectionLab("updateValue", {
+      key: plApiKey, accountId: row.plId, field: row.plField, value: row.newBalance, expectVersion: row.plApiVersion,
+    });
     if (result.success) { successCount++; setRowStatus(idx, "ok"); }
     else { errors.push(`${row.name}: ${result.error}`); setRowStatus(idx, "err"); }
   }
