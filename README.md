@@ -17,7 +17,8 @@ If you track spending in Monarch and plan your financial future in ProjectionLab
 ## Features
 
 - ⚡ **One-click sync** — once set up, updating every balance takes seconds
-- 🏠 **Dual-field assets** — a ProjectionLab asset with an attached loan (house + mortgage, car + auto loan) maps as two separate fields, so Monarch's home value and mortgage balance sync independently and your equity stays correct
+- 🏠 **Assets and their loans** — Monarch's home value and mortgage balance (or car value and auto loan) sync independently, so your equity stays correct. In ProjectionLab v5 the loan is its own debt account; on the legacy v4 app it's a second field on the asset
+- 🔁 **ProjectionLab v4 and v5** — works with both Plugin API versions and automatically migrates your saved links when ProjectionLab upgrades
 - 👁 **Preview before syncing** — see old vs. new balances with change amounts before committing anything
 - ☑️ **Selective sync** — checkboxes per account; sync only what you want
 - 🔗 **Auto-link by name** — accounts with matching names are linked automatically; a full mapping editor handles the rest (search, sort, filter by type)
@@ -54,7 +55,7 @@ The popup's Sync tab shows a live checklist of these steps until setup is comple
 ## How it works
 
 - **Monarch** balances are read via Monarch's GraphQL API using your existing browser session — the extension never sees or stores your Monarch password
-- **ProjectionLab** is updated via its official [Plugin API](https://app.projectionlab.com/docs/module-PluginAPI.html) (`window.projectionlabPluginAPI`); the extension injects a small bridge script into your ProjectionLab tab to call it
+- **ProjectionLab** is updated via its official [Plugin API](https://app.projectionlab.com/docs/types/PluginAPI.html) (`window.projectionlabPluginAPI`); the extension injects a small bridge script into your ProjectionLab tab to call it
 - Everything runs locally in your browser — there is no backend
 
 ## Privacy & security
